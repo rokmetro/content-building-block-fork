@@ -23,8 +23,11 @@ import (
 	"content/driven/twitter"
 	driver "content/driver/web"
 	"log"
-	"os"
 	"strings"
+
+	"github.com/rokwire/core-auth-library-go/v3/authservice"
+	"github.com/rokwire/core-auth-library-go/v3/envloader"
+	"github.com/rokwire/logging-library-go/v2/logs"
 )
 
 var (
@@ -39,12 +42,20 @@ func main() {
 		Version = "dev"
 	}
 
-	port := getEnvKey("CONTENT_PORT", true)
+	serviceID := "content"
+
+	loggerOpts := logs.LoggerOpts{SuppressRequests: logs.NewStandardHealthCheckHTTPRequestProperties(serviceID + "/version")}
+	logger := logs.NewLogger(serviceID, &loggerOpts)
+	envLoader := envloader.NewEnvLoader(Version, logger)
+
+	envPrefix := strings.ToUpper(serviceID) + "_"
+
+	port := envLoader.GetAndLogEnvVar(envPrefix+"PORT", true, false)
 
 	//mongoDB adapter
-	mongoDBAuth := getEnvKey("CONTENT_MONGO_AUTH", true)
-	mongoDBName := getEnvKey("CONTENT_MONGO_DATABASE", true)
-	mongoTimeout := getEnvKey("CONTENT_MONGO_TIMEOUT", false)
+	mongoDBAuth := envLoader.GetAndLogEnvVar(envPrefix+"MONGO_AUTH", true, true)
+	mongoDBName := envLoader.GetAndLogEnvVar(envPrefix+"MONGO_DATABASE", true, false)
+	mongoTimeout := envLoader.GetAndLogEnvVar(envPrefix+"MONGO_TIMEOUT", false, false)
 	storageAdapter := storage.NewStorageAdapter(mongoDBAuth, mongoDBName, mongoTimeout)
 	err := storageAdapter.Start()
 	if err != nil {
@@ -52,64 +63,61 @@ func main() {
 	}
 
 	// S3 Adapter
-	s3Bucket := getEnvKey("CONTENT_S3_BUCKET", true)
-	s3ProfileImagesBucket := getEnvKey("CONTENT_S3_PROFILE_IMAGES_BUCKET", true)
-	s3Region := getEnvKey("CONTENT_S3_REGION", true)
-	awsAccessKeyID := getEnvKey("CONTENT_AWS_ACCESS_KEY_ID", true)
-	awsSecretAccessKey := getEnvKey("CONTENT_AWS_SECRET_ACCESS_KEY", true)
+	s3Bucket := envLoader.GetAndLogEnvVar(envPrefix+"S3_BUCKET", true, true)
+	s3ProfileImagesBucket := envLoader.GetAndLogEnvVar(envPrefix+"S3_PROFILE_IMAGES_BUCKET", true, true)
+	s3Region := envLoader.GetAndLogEnvVar(envPrefix+"S3_REGION", true, true)
+	awsAccessKeyID := envLoader.GetAndLogEnvVar(envPrefix+"AWS_ACCESS_KEY_ID", true, true)
+	awsSecretAccessKey := envLoader.GetAndLogEnvVar(envPrefix+"AWS_SECRET_ACCESS_KEY", true, true)
 	awsConfig := &model.AWSConfig{S3Bucket: s3Bucket, S3ProfileImagesBucket: s3ProfileImagesBucket, S3Region: s3Region, AWSAccessKeyID: awsAccessKeyID, AWSSecretAccessKey: awsSecretAccessKey}
 	awsAdapter := awsstorage.NewAWSStorageAdapter(awsConfig)
 
-	defaultCacheExpirationSeconds := getEnvKey("CONTENT_DEFAULT_CACHE_EXPIRATION_SECONDS", false)
+	defaultCacheExpirationSeconds := envLoader.GetAndLogEnvVar(envPrefix+"DEFAULT_CACHE_EXPIRATION_SECONDS", false, false)
 	cacheAdapter := cacheadapter.NewCacheAdapter(defaultCacheExpirationSeconds)
 
-	twitterFeedURL := getEnvKey("CONTENT_TWITTER_FEED_URL", true)
-	twitterAccessToken := getEnvKey("CONTENT_TWITTER_ACCESS_TOKEN", true)
+	twitterFeedURL := envLoader.GetAndLogEnvVar(envPrefix+"TWITTER_FEED_URL", true, false)
+	twitterAccessToken := envLoader.GetAndLogEnvVar(envPrefix+"TWITTER_ACCESS_TOKEN", true, true)
 	twitterAdapter := twitter.NewTwitterAdapter(twitterFeedURL, twitterAccessToken)
 
-	mtAppID := getEnvKey("CONTENT_MULTI_TENANCY_APP_ID", true)
-	mtOrgID := getEnvKey("CONTENT_MULTI_TENANCY_ORG_ID", true)
+	mtAppID := envLoader.GetAndLogEnvVar(envPrefix+"MULTI_TENANCY_APP_ID", true, true)
+	mtOrgID := envLoader.GetAndLogEnvVar(envPrefix+"MULTI_TENANCY_ORG_ID", true, true)
 
 	// application
 	application := core.NewApplication(Version, Build, storageAdapter, awsAdapter, twitterAdapter, cacheAdapter, mtAppID, mtOrgID)
 	application.Start()
 
 	// web adapter
-	host := getEnvKey("CONTENT_HOST", true)
-	coreBBHost := getEnvKey("CONTENT_CORE_BB_HOST", true)
-	contentServiceURL := getEnvKey("CONTENT_SERVICE_URL", true)
+	host := envLoader.GetAndLogEnvVar(envPrefix+"HOST", true, false)
+	coreBBHost := envLoader.GetAndLogEnvVar(envPrefix+"CORE_BB_HOST", true, false)
+	contentServiceURL := envLoader.GetAndLogEnvVar(envPrefix+"SERVICE_URL", true, false)
 
-	config := model.Config{
-		CoreBBHost:        coreBBHost,
-		ContentServiceURL: contentServiceURL,
+	authService := authservice.AuthService{
+		ServiceID:   "content",
+		ServiceHost: contentServiceURL,
+		FirstParty:  true,
+		AuthBaseURL: coreBBHost,
 	}
 
-	webAdapter := driver.NewWebAdapter(host, port, application, config)
+	serviceRegLoader, err := authservice.NewRemoteServiceRegLoader(&authService, []string{"core"})
+	if err != nil {
+		log.Fatalf("Error initializing remote service registration loader: %v", err)
+	}
 
+	serviceRegManager, err := authservice.NewServiceRegManager(&authService, serviceRegLoader, !strings.HasPrefix(contentServiceURL, "http://localhost"))
+	if err != nil {
+		log.Fatalf("Error initializing service registration manager: %v", err)
+	}
+
+	var corsAllowedHeaders []string
+	var corsAllowedOrigins []string
+	corsAllowedHeadersStr := envLoader.GetAndLogEnvVar("CORS_ALLOWED_HEADERS", false, true)
+	if corsAllowedHeadersStr != "" {
+		corsAllowedHeaders = strings.Split(corsAllowedHeadersStr, ",")
+	}
+	corsAllowedOriginsStr := envLoader.GetAndLogEnvVar("CORS_ALLOWED_ORIGINS", false, true)
+	if corsAllowedOriginsStr != "" {
+		corsAllowedOrigins = strings.Split(corsAllowedOriginsStr, ",")
+	}
+
+	webAdapter := driver.NewWebAdapter(host, port, application, serviceRegManager, corsAllowedOrigins, corsAllowedHeaders, logger)
 	webAdapter.Start()
-}
-
-func getEnvKeyAsList(key string, required bool) []string {
-	stringValue := getEnvKey(key, required)
-
-	// it is comma separated format
-	stringListValue := strings.Split(stringValue, ",")
-	if len(stringListValue) == 0 && required {
-		log.Fatalf("missing or empty env var: %s", key)
-	}
-
-	return stringListValue
-}
-
-func getEnvKey(key string, required bool) string {
-	// get from the environment
-	value, exist := os.LookupEnv(key)
-	if !exist {
-		if required {
-			log.Fatal("No provided environment variable for " + key)
-		} else {
-			log.Printf("No provided environment variable for " + key)
-		}
-	}
-	return value
 }

@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/rokwire/core-auth-library-go/tokenauth"
+	"github.com/rokwire/core-auth-library-go/v3/tokenauth"
 	"go.mongodb.org/mongo-driver/bson"
 )
 

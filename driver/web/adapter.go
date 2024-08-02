@@ -16,7 +16,6 @@ package web
 
 import (
 	"content/core"
-	"content/core/model"
 	"content/driver/web/rest"
 	"content/utils"
 	"fmt"
@@ -24,7 +23,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/rokwire/core-auth-library-go/tokenauth"
+	"github.com/rokwire/core-auth-library-go/v3/authservice"
+	"github.com/rokwire/core-auth-library-go/v3/tokenauth"
+	"github.com/rokwire/core-auth-library-go/v3/webauth"
+	"github.com/rokwire/logging-library-go/v2/logs"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -38,6 +40,11 @@ type Adapter struct {
 	adminApisHandler rest.AdminApisHandler
 
 	app *core.Application
+
+	corsAllowedOrigins []string
+	corsAllowedHeaders []string
+
+	logger *logs.Logger
 }
 
 // @title Rokwire Content Building Block API
@@ -155,7 +162,11 @@ func (we Adapter) Start() {
 
 	adminSubRouter.HandleFunc("/image", we.coreAuthWrapFunc(we.adminApisHandler.UploadImage, we.auth.coreAuth.permissionsAuth)).Methods("POST")
 
-	log.Fatal(http.ListenAndServe(":"+we.port, router))
+	var handler http.Handler = router
+	if len(we.corsAllowedOrigins) > 0 {
+		handler = webauth.SetupCORS(we.corsAllowedOrigins, we.corsAllowedHeaders, router)
+	}
+	we.logger.Fatalf("Error serving: %v", http.ListenAndServe(":"+we.port, handler))
 }
 
 func (we Adapter) serveDoc(w http.ResponseWriter, r *http.Request) {
@@ -193,12 +204,14 @@ func (we Adapter) coreAuthWrapFunc(handler coreAuthFunc, authorization Authoriza
 }
 
 // NewWebAdapter creates new WebAdapter instance
-func NewWebAdapter(host string, port string, app *core.Application, config model.Config) Adapter {
-	auth := NewAuth(app, config)
+func NewWebAdapter(host string, port string, app *core.Application, serviceRegManager *authservice.ServiceRegManager,
+	corsAllowedOrigins []string, corsAllowedHeaders []string, logger *logs.Logger) Adapter {
+	auth := NewAuth(app, serviceRegManager)
 
 	apisHandler := rest.NewApisHandler(app)
 	adminApisHandler := rest.NewAdminApisHandler(app)
-	return Adapter{host: host, port: port, auth: auth, apisHandler: apisHandler, adminApisHandler: adminApisHandler, app: app}
+	return Adapter{host: host, port: port, auth: auth, apisHandler: apisHandler, adminApisHandler: adminApisHandler, app: app,
+		corsAllowedOrigins: corsAllowedOrigins, corsAllowedHeaders: corsAllowedHeaders, logger: logger}
 }
 
 // AppListener implements core.ApplicationListener interface

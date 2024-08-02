@@ -16,16 +16,14 @@ package web
 
 import (
 	"content/core"
-	"content/core/model"
 	"log"
 	"net/http"
 
-	"github.com/rokwire/core-auth-library-go/authorization"
-	"github.com/rokwire/core-auth-library-go/authservice"
-	"github.com/rokwire/core-auth-library-go/tokenauth"
-	"github.com/rokwire/logging-library-go/errors"
-	"github.com/rokwire/logging-library-go/logs"
-	"github.com/rokwire/logging-library-go/logutils"
+	"github.com/rokwire/core-auth-library-go/v3/authorization"
+	"github.com/rokwire/core-auth-library-go/v3/authservice"
+	"github.com/rokwire/core-auth-library-go/v3/tokenauth"
+	"github.com/rokwire/logging-library-go/v2/errors"
+	"github.com/rokwire/logging-library-go/v2/logutils"
 )
 
 // Authorization is an interface for auth types
@@ -40,8 +38,8 @@ type Auth struct {
 }
 
 // NewAuth creates new auth handler
-func NewAuth(app *core.Application, config model.Config) *Auth {
-	coreAuth := NewCoreAuth(app, config)
+func NewAuth(app *core.Application, serviceRegManager *authservice.ServiceRegManager) *Auth {
+	coreAuth := NewCoreAuth(app, serviceRegManager)
 
 	auth := Auth{coreAuth: coreAuth}
 	return &auth
@@ -58,21 +56,9 @@ type CoreAuth struct {
 }
 
 // NewCoreAuth creates new CoreAuth
-func NewCoreAuth(app *core.Application, config model.Config) *CoreAuth {
-
-	remoteConfig := authservice.RemoteAuthDataLoaderConfig{
-		AuthServicesHost: config.CoreBBHost,
-	}
-
-	serviceLoader, err := authservice.NewRemoteAuthDataLoader(remoteConfig, []string{"core"}, logs.NewLogger("content", &logs.LoggerOpts{}))
-	authService, err := authservice.NewAuthService("content", config.ContentServiceURL, serviceLoader)
-	if err != nil {
-		log.Fatalf("Error initializing auth service: %v", err)
-	}
-
-	adminPermissionAuth := authorization.NewCasbinAuthorization("driver/web/authorization_model.conf",
-		"driver/web/authorization_policy.csv")
-	tokenAuth, err := tokenauth.NewTokenAuth(true, authService, adminPermissionAuth, nil)
+func NewCoreAuth(app *core.Application, serviceRegManager *authservice.ServiceRegManager) *CoreAuth {
+	adminPermissionAuth := authorization.NewCasbinAuthorization("driver/web/authorization_model.conf", "driver/web/authorization_policy.csv")
+	tokenAuth, err := tokenauth.NewTokenAuth(true, serviceRegManager, adminPermissionAuth, nil)
 	if err != nil {
 		log.Fatalf("Error intitializing token auth: %v", err)
 	}
@@ -94,7 +80,7 @@ type PermissionsAuth struct {
 func (a *PermissionsAuth) start() {}
 
 func (a *PermissionsAuth) check(req *http.Request) (int, *tokenauth.Claims, error) {
-	claims, err := a.tokenAuth.CheckRequestTokens(req)
+	claims, err := a.tokenAuth.CheckRequestToken(req)
 	if err != nil {
 		return http.StatusUnauthorized, nil, errors.WrapErrorAction("typeCheckServicesAuthRequestToken", logutils.TypeToken, nil, err)
 	}
@@ -123,7 +109,7 @@ type UserAuth struct {
 func (a *UserAuth) start() {}
 
 func (a *UserAuth) check(req *http.Request) (int, *tokenauth.Claims, error) {
-	claims, err := a.tokenAuth.CheckRequestTokens(req)
+	claims, err := a.tokenAuth.CheckRequestToken(req)
 	if err != nil {
 		return http.StatusUnauthorized, nil, errors.WrapErrorAction("typeCheckServicesAuthRequestToken", logutils.TypeToken, nil, err)
 	}
@@ -151,7 +137,7 @@ type StandardAuth struct {
 func (a *StandardAuth) start() {}
 
 func (a *StandardAuth) check(req *http.Request) (int, *tokenauth.Claims, error) {
-	claims, err := a.tokenAuth.CheckRequestTokens(req)
+	claims, err := a.tokenAuth.CheckRequestToken(req)
 	if err != nil {
 		return http.StatusUnauthorized, nil, errors.WrapErrorAction("typeCheckServicesAuthRequestToken", logutils.TypeToken, nil, err)
 	}
