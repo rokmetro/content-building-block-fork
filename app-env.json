@@ -19,7 +19,7 @@
         "CONTENT_HOST": "<base-url>",
         "CONTENT_CORE_BB_HOST": "<core-bb-base-url>",
         "CONTENT_SERVICE_URL": "<base-url>",
-        "CONTENT_CORS_ALLOWED_HEADERS": "<header1>,<header2>",
+        "CONTENT_CORS_ALLOWED_HEADERS": "",
         "CONTENT_CORS_ALLOWED_ORIGINS": "<origin1>,<origin2>"
     }
 }
