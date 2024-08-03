@@ -109,11 +109,11 @@ func main() {
 
 	var corsAllowedHeaders []string
 	var corsAllowedOrigins []string
-	corsAllowedHeadersStr := envLoader.GetAndLogEnvVar("CORS_ALLOWED_HEADERS", false, true)
+	corsAllowedHeadersStr := envLoader.GetAndLogEnvVar(envPrefix+"CORS_ALLOWED_HEADERS", false, true)
 	if corsAllowedHeadersStr != "" {
 		corsAllowedHeaders = strings.Split(corsAllowedHeadersStr, ",")
 	}
-	corsAllowedOriginsStr := envLoader.GetAndLogEnvVar("CORS_ALLOWED_ORIGINS", false, true)
+	corsAllowedOriginsStr := envLoader.GetAndLogEnvVar(envPrefix+"CORS_ALLOWED_ORIGINS", false, true)
 	if corsAllowedOriginsStr != "" {
 		corsAllowedOrigins = strings.Split(corsAllowedOriginsStr, ",")
 	}
