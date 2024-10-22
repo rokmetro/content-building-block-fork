@@ -1,0 +1,93 @@
+get:
+  tags:
+    - Admin
+  summary: Retrieves gies onboarding checklists
+  description: |
+    Retrieves gies onboarding checklists
+  security:
+    - bearerAuth: []  
+  parameters:
+    - name: all-apps
+      in: query
+      description: all-apps
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: boolean
+    - name: ids
+      in: query
+      description: Coma separated IDs of the desired records
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string    
+    - name: offset
+      in: query
+      description: offset
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string  
+    - name: limit
+      in: query
+      description: limit the result
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string 
+    - name: order
+      in: query
+      description: Possible values- asc, desc. Default- desc
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string             
+  responses:
+    200:
+      description: Success
+      content:
+         application/json:
+           schema:
+             type: array
+             items:
+               $ref: "../../schemas/application/ContentItem.yaml"
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error
+post:
+  tags:
+    - Admin 
+  summary: Creates gies onboarding checklists
+  description: |
+    Creates gies onboarding checklists
+  security:
+    - bearerAuth: [] 
+  requestBody:
+     description: Creates a wellness tip
+     content:
+       application/json:
+         schema:
+           $ref: "../../schemas/apis/admin/contentItem/request/Request.yaml"             
+  responses:
+    200:
+      description: Success
+      content:
+         application/json:
+           schema:
+             type: array
+             items:
+               $ref: "../../schemas/application/ContentItem.yaml"
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error      

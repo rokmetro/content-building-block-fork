@@ -1,0 +1,51 @@
+get:
+  tags:
+    - Admin
+  deprecated: true  
+  summary: Retrieves  all health locations
+  description: |
+    Retrieves  all health locations
+  security:
+    - bearerAuth: []  
+  parameters:
+    - name: ids
+      in: query
+      description: Coma separated IDs of the desired records
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error
+post:
+  tags:
+    - Admin
+  deprecated: true  
+  summary: Creates a new health location
+  description: |
+    Creates a new health location
+  security:
+    - bearerAuth: [] 
+  requestBody:
+     description: Creates a health location
+     content:
+       application/json:
+         schema:
+           $ref: "../../schemas/apis/admin/health-locations/request/Request.yaml"            
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error

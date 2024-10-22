@@ -1,0 +1,53 @@
+post:
+  tags:
+  - Apis
+  summary: Upload a user voice record as a file
+  description: Accept m4a file with key 'voiceRecord'. It overrides the current audio.
+  requestBody:
+    content:
+      multipart/form-data:
+        schema:
+          type: object
+          properties:
+            file:
+              type: string
+              format: binary
+        encoding:
+            file:
+              contentType: 'audio/x-m4a'
+  responses:
+    '200':
+      description: Success
+    '400':
+      description: Bad request
+get:
+  tags:
+  - Apis
+  summary: Get the user voice record as a file
+  responses:
+    '200':
+      description: Success
+      content:
+        audio/x-m4a:
+          schema:
+            type: string
+            format: binary
+    '404':
+      description: File not found
+delete:
+  tags:
+  - Apis
+  summary: Delete the user voice record
+  description: |
+     Delete the user voice record
+  security:
+    - bearerAuth: [] 
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error

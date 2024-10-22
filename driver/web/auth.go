@@ -23,6 +23,7 @@ import (
 	"github.com/rokwire/core-auth-library-go/v3/authservice"
 	"github.com/rokwire/core-auth-library-go/v3/tokenauth"
 	"github.com/rokwire/logging-library-go/v2/errors"
+	"github.com/rokwire/logging-library-go/v2/logs"
 	"github.com/rokwire/logging-library-go/v2/logutils"
 )
 
@@ -35,13 +36,28 @@ type Authorization interface {
 // Auth handler
 type Auth struct {
 	coreAuth *CoreAuth
+	bbs      tokenauth.Handlers
+	tps      tokenauth.Handlers
+	logger   *logs.Logger
 }
 
 // NewAuth creates new auth handler
-func NewAuth(app *core.Application, serviceRegManager *authservice.ServiceRegManager) *Auth {
+func NewAuth(app *core.Application, serviceRegManager *authservice.ServiceRegManager, logger *logs.Logger) *Auth {
 	coreAuth := NewCoreAuth(app, serviceRegManager)
 
-	auth := Auth{coreAuth: coreAuth}
+	bbsStandardHandler, err := newBBsStandardHandler(serviceRegManager)
+	if err != nil {
+		return nil
+	}
+	bbsHandlers := tokenauth.NewHandlers(bbsStandardHandler) //add permissions, user and authenticated
+
+	tpsStandardHandler, err := newTPsStandardHandler(serviceRegManager)
+	if err != nil {
+		return nil
+	}
+	tpsHandlers := tokenauth.NewHandlers(tpsStandardHandler) //add permissions, user and authenticated
+
+	auth := Auth{coreAuth: coreAuth, bbs: bbsHandlers, tps: tpsHandlers, logger: logger}
 	return &auth
 }
 
@@ -69,6 +85,54 @@ func NewCoreAuth(app *core.Application, serviceRegManager *authservice.ServiceRe
 	auth := CoreAuth{app: app, tokenAuth: tokenAuth, permissionsAuth: permissionsAuth,
 		userAuth: usersAuth, standardAuth: standardAuth}
 	return &auth
+}
+
+// BBs auth ///////////
+func newBBsStandardHandler(serviceRegManager *authservice.ServiceRegManager) (*tokenauth.StandardHandler, error) {
+	bbsPermissionAuth := authorization.NewCasbinStringAuthorization("driver/web/authorization_bbs_permission_policy.csv")
+	bbsTokenAuth, err := tokenauth.NewTokenAuth(true, serviceRegManager, bbsPermissionAuth, nil)
+	if err != nil {
+		return nil, errors.WrapErrorAction(logutils.ActionCreate, "bbs token auth", nil, err)
+	}
+
+	check := func(claims *tokenauth.Claims, req *http.Request) (int, error) {
+		if !claims.Service {
+			return http.StatusUnauthorized, errors.ErrorData(logutils.StatusInvalid, "service claim", nil)
+		}
+
+		if !claims.FirstParty {
+			return http.StatusUnauthorized, errors.ErrorData(logutils.StatusInvalid, "first party claim", nil)
+		}
+
+		return http.StatusOK, nil
+	}
+
+	auth := tokenauth.NewStandardHandler(bbsTokenAuth, check)
+	return auth, nil
+}
+
+// TPs auth ///////////
+func newTPsStandardHandler(serviceRegManager *authservice.ServiceRegManager) (*tokenauth.StandardHandler, error) {
+	tpsPermissionAuth := authorization.NewCasbinStringAuthorization("driver/web/authorization_tps_permission_policy.csv")
+	tpsTokenAuth, err := tokenauth.NewTokenAuth(true, serviceRegManager, tpsPermissionAuth, nil)
+	if err != nil {
+		return nil, errors.WrapErrorAction(logutils.ActionCreate, "tps token auth", nil, err)
+	}
+
+	check := func(claims *tokenauth.Claims, req *http.Request) (int, error) {
+		if !claims.Service {
+			return http.StatusUnauthorized, errors.ErrorData(logutils.StatusInvalid, "service claim", nil)
+		}
+
+		if claims.FirstParty {
+			return http.StatusUnauthorized, errors.ErrorData(logutils.StatusInvalid, "first party claim", nil)
+		}
+
+		return http.StatusOK, nil
+	}
+
+	auth := tokenauth.NewStandardHandler(tpsTokenAuth, check)
+	return auth, nil
 }
 
 // PermissionsAuth entity

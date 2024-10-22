@@ -1,5 +1,28 @@
 p, all_admin_content, /content/admin/*, (GET)|(POST)|(PUT)|(DELETE)
 
+p, all_content-categories, /content/admin/categories, (GET)|(POST)|(DELETE)|(PUT)
+p, all_content-categories, /content/admin/categories/*, (GET)|(POST)|(DELETE)|(PUT)
+p, get_content-categories, /content/admin/categories, (GET)
+p, get_content-categories, /content/admin/categories/*, (GET)
+p, update_content-categories, /content/admin/categories, (GET)|(POST)
+p, update_content-categories, /content/admin/categories/*, (GET)|(PUT)
+p, delete_content-categories, /content/admin/categories, (GET)
+p, delete_content-categories, /content/admin/categories/*, (GET)|(DELETE)
+
+p, all_content-data, /content/admin/data, (GET)|(POST)|(DELETE)|(PUT)
+p, all_content-data, /content/admin/data/*, (GET)|(POST)|(DELETE)|(PUT)
+p, get_content-data, /content/admin/data, (GET)
+p, get_content-data, /content/admin/data/*, (GET)
+p, update_content-data, /content/admin/data, (GET)|(POST)
+p, update_content-data, /content/admin/data/*, (GET)|(PUT)
+p, delete_content-data, /content/admin/data, (GET)
+p, delete_content-data, /content/admin/data/*, (GET)|(DELETE)
+
+p, all_content-files, /content/admin/files, (GET)|(POST)|(DELETE)|(PUT)
+p, get_content-files, /content/admin/files, (GET)
+p, update_content-files, /content/admin/files, (GET)|(POST)|(PUT)
+p, delete_content-files, /content/admin/files, (GET)|(DELETE)
+
 p, all_content-items, /content/admin/content_items, (GET)|(POST)|(DELETE)|(PUT)
 p, all_content-items, /content/admin/content_items/*, (GET)|(POST)|(DELETE)|(PUT)
 p, all_content-items, /content/admin/content_item/*, (GET)|(POST)|(DELETE)|(PUT)

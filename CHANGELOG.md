@@ -7,8 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Add CORS support
+
+## [1.8.0] - 2024-06-26
+### Added
+- Expose TPS API for adding images [#106](https://github.com/rokwire/content-building-block/issues/106)
+
+## [1.7.0] - 2024-06-26
+### Added
+- Remove user data [#104](https://github.com/rokwire/content-building-block/issues/104)
+
+## [1.6.1] - 2024-05-03
+### Fixed
+- Fix upload image BBs API [#100](https://github.com/rokwire/content-building-block/issues/100)
+
+## [1.6.0] - 2024-04-30
+### Added
+- Create "upload image" bbs API [#97](https://github.com/rokwire/content-building-block/issues/97)
+
+## [1.5.2] - 2024-02-15
+###
+- Use redirect to S3 for file downloads (EDIT: Stream files from S3) [#94](https://github.com/rokwire/content-building-block/issues/94)
+
+## [1.5.1] - 2024-02-01
+### Fixed
+- Fix host/base URL environment variables
+
+## [1.5.0] - 2024-01-24
+### Added
+- Refactor and support arbitrary file types [#87](https://github.com/rokwire/content-building-block/issues/87)
+
+## [1.4.0] - 2024-01-12
+### Added
+- Expose delete user audio record API [#91](https://github.com/rokwire/content-building-block/issues/91)
+
+## [1.3.0] - 2024-01-11
+### Added
+- Add user audio record availabillity [#89](https://github.com/rokwire/content-building-block/issues/89)
+
+## [1.2.4] - 2023-07-11
+### Added
+- Set logger [#69](https://github.com/rokwire/content-building-block/issues/69)
+- Prepare for deployment in OpenShift [#84](https://github.com/rokwire/content-building-block/issues/84)
 ### Fixed
 - Photo upload uses local storage [#79](https://github.com/rokwire/content-building-block/issues/79)
+- Fix docs [#76](https://github.com/rokwire/content-building-block/issues/76)
+- Оrg_id could be lost on update operation [#81](https://github.com/rokwire/content-building-block/issues/81)
 
 ## [1.2.3] - 2022-08-01
 ### Fixed

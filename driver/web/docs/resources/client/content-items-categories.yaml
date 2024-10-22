@@ -1,0 +1,30 @@
+get:
+  tags:
+    - Client
+  summary: Retrieves  all content item categories that have in the database
+  description: |
+    Retrieves  all content item categories that have in the database
+  security:
+    - bearerAuth: []     
+  parameters:
+    - name: all-apps
+      in: query
+      description: all-apps
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: boolean        
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error
+
+
+
+

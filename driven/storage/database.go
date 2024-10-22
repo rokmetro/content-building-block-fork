@@ -19,6 +19,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/rokwire/logging-library-go/v2/logs"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -34,9 +35,13 @@ type database struct {
 	db       *mongo.Database
 	dbClient *mongo.Client
 
-	studentGuides   *collectionWrapper
-	healthLocations *collectionWrapper
-	contentItems    *collectionWrapper
+	studentGuides    *collectionWrapper
+	healthLocations  *collectionWrapper
+	contentItems     *collectionWrapper
+	dataContentItems *collectionWrapper
+	categories       *collectionWrapper
+
+	logger *logs.Logger
 }
 
 func (m *database) start() error {
@@ -81,6 +86,18 @@ func (m *database) start() error {
 		return err
 	}
 
+	dataContentItems := &collectionWrapper{database: m, coll: db.Collection("data_content_items")}
+	err = m.applyDataContentItemsChecks(dataContentItems)
+	if err != nil {
+		return err
+	}
+
+	categories := &collectionWrapper{database: m, coll: db.Collection("categories")}
+	err = m.applyCategoriesChecks(categories)
+	if err != nil {
+		return err
+	}
+
 	//asign the db, db client and the collections
 	m.db = db
 	m.dbClient = client
@@ -88,6 +105,8 @@ func (m *database) start() error {
 	m.studentGuides = studentGuides
 	m.healthLocations = healthLocations
 	m.contentItems = contentItems
+	m.dataContentItems = dataContentItems
+	m.categories = categories
 
 	return nil
 }
@@ -143,6 +162,32 @@ func (m *database) applyContentItemsChecks(contentItems *collectionWrapper) erro
 	}
 
 	log.Println("content_items checks passed")
+	return nil
+}
+
+func (m *database) applyDataContentItemsChecks(dataContentItems *collectionWrapper) error {
+	log.Println("apply data_content_items checks.....")
+
+	//Add org_id + app_id index
+	err := dataContentItems.AddIndex(bson.D{primitive.E{Key: "org_id", Value: 1}, primitive.E{Key: "app_id", Value: 1}, primitive.E{Key: "key", Value: 1}}, true)
+	if err != nil {
+		return err
+	}
+
+	log.Println("data_content_items checks passed")
+	return nil
+}
+
+func (m *database) applyCategoriesChecks(categories *collectionWrapper) error {
+	log.Println("apply categories checks.....")
+
+	//Add org_id + app_id index
+	err := categories.AddIndex(bson.D{primitive.E{Key: "org_id", Value: 1}, primitive.E{Key: "app_id", Value: 1}, primitive.E{Key: "name", Value: 1}}, true)
+	if err != nil {
+		return err
+	}
+
+	log.Println("categories checks passed")
 	return nil
 }
 

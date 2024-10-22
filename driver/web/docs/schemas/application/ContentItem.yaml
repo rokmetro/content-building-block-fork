@@ -1,0 +1,18 @@
+type: object
+properties:
+  _id:
+    type: string
+  category:
+    type: string
+  date_created:
+    type: string  
+  date_updated:
+    type: string
+  data:
+    type: array
+  org_id:
+    type: string      
+  app_id:
+    type: string
+  
+

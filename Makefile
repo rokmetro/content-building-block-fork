@@ -10,7 +10,7 @@ MAJOR_VERSION=$(shell echo $(BASE_VERSION) | cut -f1 -d'.' | cut -f2 -d'v')
 MINOR_VERSION=$(shell echo $(BASE_VERSION) | cut -f2 -d'.')
 PATCH_VERSION=$(shell echo $(BASE_VERSION) | cut -f3 -d'.' || echo 0)
 COMMIT_OFFSET=$(shell echo $(GIT_VERSION) | cut -s -f2 -d'-')
-# COMMIT_HASH=$(shell echo $(GIT_VERSION) | cut -s -f3 -d'-')
+COMMIT_HASH=$(shell echo $(GIT_VERSION) | cut -s -f3 -d'-')
 VERSION=${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}$(if $(COMMIT_OFFSET),+$(COMMIT_OFFSET),)
 
 export -n GOBIN
@@ -67,7 +67,7 @@ vet: ; $(info $(M) running go vet...) @ ## Run go vet
 	$Q cd $(CURDIR) && $(GOVET) $(PKGS)
 
 .PHONY: checkfmt
-checkfmt: ; $(info $(M) Checking formatting...) @ ## Run gofmt to cehck formatting on all source files 
+checkfmt: ; $(info $(M) checking formatting...) @ ## Run gofmt to cehck formatting on all source files 
 	@ret=0 && for d in $$($(GO) list -f '{{.Dir}}' ./...); do \
 	    if [ $$($(GOFMT) -l $$d/*.go | wc -l | sed 's| ||g') -ne "0" ] ; then \
 	    $(GOFMT) -l $$d/*.go ; \
@@ -76,7 +76,7 @@ checkfmt: ; $(info $(M) Checking formatting...) @ ## Run gofmt to cehck formatti
 	 done ; exit $$ret
 
 .PHONY: fixfmt
-fixfmt: ; $(info $(M) Fixing formatting...) @ ## Run gofmt to fix formatting on all source files
+fixfmt: vendor ; $(info $(M) fixing formatting...) @ ## Run gofmt to fix formatting on all source files
 	@ret=0 && for d in $$($(GO) list -f '{{.Dir}}' ./...); do \
 		$(GOFMT) -l -w $$d/*.go || ret=$$? ; \
 	 done ; exit $$ret
@@ -108,12 +108,16 @@ version:
 vendor:
 	$(GO) mod vendor
 
-.PHONY: swagger
-swagger: ;
-	swag init -g driver/web/adapter.go
+.PHONY: oapi-gen-types
+oapi-gen-types: ;
+	oapi-codegen --generate types -o driver/web/docs/gen/gen_types.go driver/web/docs/gen/def.yaml
+
+.PHONY: oapi-gen-docs
+oapi-gen-docs: ;
+	swagger-cli bundle driver/web/docs/index.yaml --outfile driver/web/docs/gen/def.yaml --type yaml	
 
 .PHONY: log-variables
-log-variables: ; $(info $(M) Log info...) @ ## Log the variables values
+log-variables: ; $(info $(M) logging variables...) @ ## Log the variables values
 	@echo "DATE:"$(DATE)
 	@echo "GOBIN:"$(GOBIN)
 	@echo "BASE:"$(BASE)
@@ -132,7 +136,7 @@ log-variables: ; $(info $(M) Log info...) @ ## Log the variables values
 # Tools
 
 .PHONY: tools
-tools: ; $(info $(M) Installing tools...) @ ## Install tools
+tools: ; $(info $(M) installing tools...) @ ## Install tools
 	go install golang.org/x/tools/cmd/cover@latest
 	go install golang.org/x/lint/golint@latest
 	go install golang.org/x/vuln/cmd/govulncheck@latest

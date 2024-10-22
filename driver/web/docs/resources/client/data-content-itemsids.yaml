@@ -1,0 +1,30 @@
+get:
+  tags:
+    - Client
+  summary: Client API that Retrieves data content item
+  description: |
+    Retrieves data content item
+  security:
+    - bearerAuth: []         
+  parameters:
+    - name: key
+      in: path
+      description: key
+      required: true
+      style: simple
+      explode: false
+      schema:
+        type: string             
+  responses:
+    200:
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/application/DataContentItem.yaml"   
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error

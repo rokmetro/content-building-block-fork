@@ -1,0 +1,128 @@
+openapi: 3.0.3
+info:
+  title: Rokwire Content Building Block API
+  description: Rokwire Content Block API Documentation
+  version: 1.8.0
+servers:  
+  - url: 'https://api.rokwire.illinois.edu/content'
+    description: Production server
+  - url: 'https://api-test.rokwire.illinois.edu/content'
+    description: Test server
+  - url: 'https://api-dev.rokwire.illinois.edu/content'
+    description: Development server
+  - url: 'http://localhost/content'
+    description: Local server
+tags:
+  - name: Admin
+    description: Admin applications APIs.
+  - name: Apis
+    description: Apis applications APIs.
+  - name: Client
+    description: Client applications APIs.
+paths:
+  #Admin
+  /admin/student_guides:
+    $ref: "./resources/admin/student-guides.yaml" 
+  /admin/student_guides/{id}:
+    $ref: "./resources/admin/student-guidesid.yaml"  
+  /admin/health_locations:
+    $ref: "./resources/admin/health-locations.yaml" 
+  /admin/health_locations/{id}:
+    $ref: "./resources/admin/health-locationsid.yaml" 
+  /admin/v2/health_locations:
+    $ref: "./resources/admin/v2/health-locations.yaml"
+  /admin/v2/health_locations/{id}:
+    $ref: "./resources/admin/v2/health-locationsid.yaml"
+  /admin/v2/student_guides:
+    $ref: "./resources/admin/v2/student-guides.yaml"  
+  /admin/v2/student_guides/{id}:
+    $ref: "./resources/admin/v2/student-guidesid.yaml"
+  /admin/wellness_tips:
+    $ref: "./resources/admin/wellness-tips.yaml" 
+  /admin/wellness-tips/{id}:
+    $ref: "./resources/admin/wellness-tipsid.yaml"
+  /admin/campus_reminders:
+    $ref: "./resources/admin/campus-reminders.yaml"  
+  /admin/campus_reminders/{id}:
+    $ref: "./resources/admin/campus-remindersid.yaml"  
+  /admin/gies_onboarding_checklists:
+    $ref: "./resources/admin/gies-onboarding-checklists.yaml"
+  /admin/gies_onboarding_checklists/{id}:
+    $ref: "./resources/admin/gies-onboarding-checklistsid.yaml" 
+  /admin/uiuc_onboarding_checklists:
+    $ref: "./resources/admin/uiuc-onboarding-checklists.yaml"
+  /admin/uiuc_onboarding_checklists/{id}:
+    $ref: "./resources/admin/uiuc-onboarding-checklistsid.yaml" 
+  /admin/gies_post_templates:
+    $ref: "./resources/admin/gies-post-templates.yaml" 
+  /admin/gies_post_templates/{id}:
+    $ref: "./resources/admin/gies-post-templatesids.yaml" 
+  /admin/content_items:
+    $ref: "./resources/admin/content-items.yaml"
+  /admin/content_items/{id}:
+    $ref: "./resources/admin/content-itemsid.yaml" 
+  /admin/content_items_categories:
+    $ref: "./resources/admin/content-item-categories.yaml"
+  /admin/image:
+    $ref: "./resources/admin/image.yaml"  
+  /admin/data:
+    $ref: "./resources/admin/data-content-items.yaml"
+  /admin/data/{key}:
+    $ref: "./resources/admin/data-content-itemsids.yaml"
+  /admin/categories:
+    $ref: "./resources/admin/categories.yaml" 
+  /admin/categories/{name}:
+    $ref: "./resources/admin/categoriesids.yaml"    
+  /admin/files:
+    $ref: "./resources/admin/file-content-items.yaml"                            
+
+  #Apis
+  /profile_photo/{user-id}:
+    $ref: "./resources/apis/profile-photo-userID.yaml"
+  /profile_photo:
+    $ref: "./resources/apis/profile-photo.yaml"
+  /voice_record:
+    $ref: "./resources/apis/voice-record.yaml"
+
+  #Client
+  /student_guides:
+    $ref: "./resources/client/student-guides.yaml"
+  /student_guides/{id}:
+    $ref: "./resources/client/student-guidesid.yaml" 
+  /health_locations:
+    $ref: "./resources/client/health-locations.yaml" 
+  /health_locations/{id}:
+    $ref: "./resources/client/health-locationsid.yaml"
+  /content_items:
+    $ref: "./resources/client/content-items.yaml"    
+  /content_items/{id}:
+    $ref: "./resources/client/content-itemsid.yaml" 
+  /content_item/categories:
+    $ref: "./resources/client/content-items-categories.yaml"  
+  /image:
+    $ref: "./resources/client/image.yaml"
+  /twitter/users/{user_id}/tweets:
+    $ref: "./resources/client/twitter-user-tweets.yaml"   
+  /data:
+    $ref: "./resources/client/data-content-items.yaml"
+  /data/{key}:
+    $ref: "./resources/client/data-content-itemsids.yaml" 
+  /files:
+    $ref: "./resources/client/file-content-items.yaml"     
+
+ #BBs
+  /bbs/image:
+    $ref: "./resources/bbs/image.yaml"   
+
+ #TPs
+  /tps/image:
+    $ref: "./resources/tps/image.yaml"    
+  
+components:
+  securitySchemes:
+    bearerAuth:            # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    $ref: "./schemas/index.yaml"

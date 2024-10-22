@@ -15,12 +15,14 @@
 package core
 
 import (
+	"content/core/interfaces"
 	"content/driven/awsstorage"
 	cacheadapter "content/driven/cache"
-	"content/driven/storage"
 	"content/driven/twitter"
 	"log"
 	"sync"
+
+	"github.com/rokwire/logging-library-go/v2/logs"
 )
 
 // Application represents the core application code based on hexagonal architecture
@@ -30,9 +32,9 @@ type Application struct {
 
 	cacheLock *sync.Mutex
 
-	Services Services //expose to the drivers adapters
+	Services interfaces.Services //expose to the drivers adapters
 
-	storage        Storage
+	storage        interfaces.Storage
 	awsAdapter     *awsstorage.Adapter
 	twitterAdapter *twitter.Adapter
 	cacheAdapter   *cacheadapter.CacheAdapter
@@ -40,6 +42,11 @@ type Application struct {
 	//TODO - remove this when applied to all environemnts
 	multiTenancyAppID string
 	multiTenancyOrgID string
+
+	logger *logs.Logger
+
+	//delete data logic
+	deleteDataLogic deleteDataLogic
 }
 
 // Start starts the core part of the application
@@ -50,17 +57,19 @@ func (app *Application) Start() {
 	if err != nil {
 		log.Fatalf("error initializing multi-tenancy data: %s", err.Error())
 	}
+
+	app.deleteDataLogic.start()
 }
 
 // as the service starts supporting multi-tenancy we need to add the needed multi-tenancy fields for the existing data,
 func (app *Application) storeMultiTenancyData() error {
 	log.Println("storeMultiTenancyData...")
-	//in transaction
-	transaction := func(context storage.TransactionContext) error {
 
+	//in transaction
+	transaction := func(storage interfaces.Storage) error {
 		//check if we need to apply multi-tenancy data
 		var applyData bool
-		items, err := app.storage.FindAllContentItems(context)
+		items, err := storage.FindAllContentItems()
 		if err != nil {
 			return err
 		}
@@ -80,7 +89,7 @@ func (app *Application) storeMultiTenancyData() error {
 		if applyData {
 			log.Print("\tapplying multi-tenancy data..")
 
-			err := app.storage.StoreMultiTenancyData(context, app.multiTenancyAppID, app.multiTenancyOrgID)
+			err := storage.StoreMultiTenancyData(app.multiTenancyAppID, app.multiTenancyOrgID)
 			if err != nil {
 				return err
 			}
@@ -96,15 +105,20 @@ func (app *Application) storeMultiTenancyData() error {
 		log.Printf("error performing transaction for multi tenancy")
 		return err
 	}
+
 	return nil
 }
 
 // NewApplication creates new Application
-func NewApplication(version string, build string, storage Storage, awsAdapter *awsstorage.Adapter,
-	twitterAdapter *twitter.Adapter, cacheadapter *cacheadapter.CacheAdapter, mtAppID string, mtOrgID string) *Application {
+func NewApplication(version string, build string, storage interfaces.Storage, awsAdapter *awsstorage.Adapter,
+	twitterAdapter *twitter.Adapter, cacheadapter *cacheadapter.CacheAdapter, mtAppID string, mtOrgID string,
+	serviceID string, coreBB interfaces.Core, logger *logs.Logger) *Application {
 	cacheLock := &sync.Mutex{}
+	deleteDataLogic := deleteLogic(*logger, coreBB, serviceID, storage, awsAdapter)
+
 	application := Application{version: version, build: build, cacheLock: cacheLock, storage: storage,
-		awsAdapter: awsAdapter, twitterAdapter: twitterAdapter, cacheAdapter: cacheadapter, multiTenancyAppID: mtAppID, multiTenancyOrgID: mtOrgID}
+		awsAdapter: awsAdapter, twitterAdapter: twitterAdapter, cacheAdapter: cacheadapter,
+		multiTenancyAppID: mtAppID, multiTenancyOrgID: mtOrgID, deleteDataLogic: deleteDataLogic, logger: logger}
 
 	// add the drivers ports/interfaces
 	application.Services = &servicesImpl{app: &application}

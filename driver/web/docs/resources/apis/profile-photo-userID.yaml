@@ -1,0 +1,34 @@
+get:
+  tags:
+  - Apis
+  summary: Retrieves the profile photo
+  description: |
+    Retrieves a reward inventory by id
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: user_id
+      in: path
+      description: the id of the user
+      required: true
+      style: simple
+      explode: false
+      schema:
+        type: string
+    - name: size
+      in: query
+      description: Possible values default, medium, small
+      required: true
+      style: simple
+      explode: false
+      schema:
+        type: string    
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error

@@ -1,0 +1,8 @@
+type: object
+properties:
+  height:
+    type: integer
+  width:
+    type: integer
+  quality:
+    type: integer  

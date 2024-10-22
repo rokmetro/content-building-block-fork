@@ -2,7 +2,7 @@ FROM docker.io/golang:1.22-alpine as builder
 
 ENV CGO_ENABLED=1
 
-RUN apk add --no-cache --update libwebp-dev make gcc g++
+RUN apk add --no-cache --update libwebp-dev make gcc g++ git
 
 RUN mkdir /content-app
 WORKDIR /content-app
@@ -20,10 +20,15 @@ RUN apk update && \
     apk add ca-certificates ffmpeg libwebp libwebp-tools libwebp-dev
 
 COPY --from=builder /content-app/bin/content /
-COPY --from=builder /content-app/docs/swagger.yaml /docs/swagger.yaml
+COPY --from=builder /content-app/driver/web/docs/gen/def.yaml /driver/web/docs/gen/def.yaml
 
 COPY --from=builder /content-app/driver/web/authorization_model.conf /driver/web/authorization_model.conf
 COPY --from=builder /content-app/driver/web/authorization_policy.csv /driver/web/authorization_policy.csv
+COPY --from=builder /content-app/driver/web/authorization_bbs_permission_policy.csv /driver/web/authorization_bbs_permission_policy.csv
+COPY --from=builder /content-app/driver/web/authorization_tps_permission_policy.csv /driver/web/authorization_tps_permission_policy.csv
+
+COPY --from=builder /content-app/vendor/github.com/rokwire/core-auth-library-go/v3/authorization/authorization_model_scope.conf /content-app/vendor/github.com/rokwire/core-auth-library-go/v3/authorization/authorization_model_scope.conf
+COPY --from=builder /content-app/vendor/github.com/rokwire/core-auth-library-go/v3/authorization/authorization_model_string.conf /content-app/vendor/github.com/rokwire/core-auth-library-go/v3/authorization/authorization_model_string.conf
 
 COPY --from=builder /etc/passwd /etc/passwd
 

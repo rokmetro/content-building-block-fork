@@ -1,0 +1,6 @@
+type: object
+properties:
+  all_apps:
+    type: boolean
+  data:
+    type: array  

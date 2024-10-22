@@ -1,0 +1,11 @@
+required:
+  - key
+  - category
+type: object
+properties:
+  key:
+    type: string
+  category:
+    type: string
+  data:
+    type: object      

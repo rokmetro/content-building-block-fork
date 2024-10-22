@@ -1,0 +1,65 @@
+get:
+  tags:
+  - Apis
+  summary: Retrieves the profile photo
+  description: |
+    Retrieves a reward inventory by id
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: size
+      in: query
+      description: Possible values default, medium, small
+      required: true
+      style: simple
+      explode: false
+      schema:
+        type: string    
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error
+post:
+   tags:
+   - Apis
+   summary: Stores profile photo
+   description: |
+     Stores profile photo
+   security:
+     - bearerAuth: []
+   requestBody:
+     description: Stores profile photo
+     content:
+       application/json:
+     required: true    
+   responses:
+     200:
+       description: Success
+     400:
+       description: Bad request
+     401:
+       description: Unauthorized
+     500:
+       description: Internal error   
+delete:
+   tags:
+   - Apis
+   summary: Deletes the profile photo of the user who request
+   description: |
+     Deletes the profile photo of the user who request
+   security:
+     - bearerAuth: [] 
+   responses:
+     200:
+       description: Success
+     400:
+       description: Bad request
+     401:
+       description: Unauthorized
+     500:
+       description: Internal error                    

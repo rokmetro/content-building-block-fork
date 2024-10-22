@@ -18,7 +18,9 @@ package model
 type AWSConfig struct {
 	S3Bucket              string
 	S3ProfileImagesBucket string
-	S3Region              string
-	AWSAccessKeyID        string
-	AWSSecretAccessKey    string
+	S3UsersAudiosBucket   string
+
+	S3Region           string
+	AWSAccessKeyID     string
+	AWSSecretAccessKey string
 }

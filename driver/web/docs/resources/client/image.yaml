@@ -1,0 +1,58 @@
+post:
+  tags:
+    - Client
+  summary: Uploads an image to AWS S3
+  description: |
+     Uploads an image to AWS S3
+  security:
+    - bearerAuth: [] 
+  parameters:
+    - name: S3 bucket path
+      in: query
+      description: path within the S3 bucket
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: boolean
+    - name: height
+      in: query
+      description: height of the image to resize.
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string  
+    - name: width
+      in: query
+      description: width of the image to resize
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string 
+    - name: quality
+      in: query
+      description: quality of the image. Default - 100
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string   
+    - name: fileName
+      in: query
+      description: the uploaded file name
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string           
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error

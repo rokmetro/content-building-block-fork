@@ -19,14 +19,18 @@ import (
 	"content/core/model"
 	"content/driven/awsstorage"
 	cacheadapter "content/driven/cache"
+	corebb "content/driven/core"
 	storage "content/driven/storage"
 	"content/driven/twitter"
 	driver "content/driver/web"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/rokwire/core-auth-library-go/v3/authservice"
 	"github.com/rokwire/core-auth-library-go/v3/envloader"
+	"github.com/rokwire/core-auth-library-go/v3/keys"
+	"github.com/rokwire/core-auth-library-go/v3/sigauth"
 	"github.com/rokwire/logging-library-go/v2/logs"
 )
 
@@ -52,12 +56,34 @@ func main() {
 
 	port := envLoader.GetAndLogEnvVar(envPrefix+"PORT", true, false)
 
+	//common
+	host := envLoader.GetAndLogEnvVar(envPrefix+"HOST", true, false)
+	coreBBHost := envLoader.GetAndLogEnvVar(envPrefix+"CORE_BB_HOST", true, false)
+	contentServiceURL := envLoader.GetAndLogEnvVar(envPrefix+"SERVICE_URL", true, false)
+
+	authService := authservice.AuthService{
+		ServiceID:   serviceID,
+		ServiceHost: contentServiceURL,
+		FirstParty:  true,
+		AuthBaseURL: coreBBHost,
+	}
+
+	serviceRegLoader, err := authservice.NewRemoteServiceRegLoader(&authService, []string{"auth"})
+	if err != nil {
+		log.Fatalf("Error initializing remote service registration loader: %v", err)
+	}
+
+	serviceRegManager, err := authservice.NewServiceRegManager(&authService, serviceRegLoader, !strings.HasPrefix(contentServiceURL, "http://localhost"))
+	if err != nil {
+		log.Fatalf("Error initializing service registration manager: %v", err)
+	}
+
 	//mongoDB adapter
 	mongoDBAuth := envLoader.GetAndLogEnvVar(envPrefix+"MONGO_AUTH", true, true)
 	mongoDBName := envLoader.GetAndLogEnvVar(envPrefix+"MONGO_DATABASE", true, false)
 	mongoTimeout := envLoader.GetAndLogEnvVar(envPrefix+"MONGO_TIMEOUT", false, false)
-	storageAdapter := storage.NewStorageAdapter(mongoDBAuth, mongoDBName, mongoTimeout)
-	err := storageAdapter.Start()
+	storageAdapter := storage.NewStorageAdapter(mongoDBAuth, mongoDBName, mongoTimeout, logger)
+	err = storageAdapter.Start()
 	if err != nil {
 		log.Fatal("Cannot start the mongoDB adapter - " + err.Error())
 	}
@@ -65,11 +91,21 @@ func main() {
 	// S3 Adapter
 	s3Bucket := envLoader.GetAndLogEnvVar(envPrefix+"S3_BUCKET", true, true)
 	s3ProfileImagesBucket := envLoader.GetAndLogEnvVar(envPrefix+"S3_PROFILE_IMAGES_BUCKET", true, true)
+	s3UsersAudiosBucket := envLoader.GetAndLogEnvVar(envPrefix+"S3_USERS_AUDIOS_BUCKET", true, true)
 	s3Region := envLoader.GetAndLogEnvVar(envPrefix+"S3_REGION", true, true)
 	awsAccessKeyID := envLoader.GetAndLogEnvVar(envPrefix+"AWS_ACCESS_KEY_ID", true, true)
 	awsSecretAccessKey := envLoader.GetAndLogEnvVar(envPrefix+"AWS_SECRET_ACCESS_KEY", true, true)
-	awsConfig := &model.AWSConfig{S3Bucket: s3Bucket, S3ProfileImagesBucket: s3ProfileImagesBucket, S3Region: s3Region, AWSAccessKeyID: awsAccessKeyID, AWSSecretAccessKey: awsSecretAccessKey}
-	awsAdapter := awsstorage.NewAWSStorageAdapter(awsConfig)
+	awsConfig := &model.AWSConfig{S3Bucket: s3Bucket,
+		S3ProfileImagesBucket: s3ProfileImagesBucket,
+		S3UsersAudiosBucket:   s3UsersAudiosBucket,
+		S3Region:              s3Region, AWSAccessKeyID: awsAccessKeyID, AWSSecretAccessKey: awsSecretAccessKey}
+
+	presignExpirationMinutesVal := envLoader.GetAndLogEnvVar(envPrefix+"S3_REQUEST_PRESIGN_EXPIRATION_MINUTES", false, false)
+	presignExpirationMinutes, err := strconv.Atoi(presignExpirationMinutesVal)
+	if err != nil {
+		logger.Warnf("error parsing S3 request presign expiration minutes: %s - applying default", err.Error())
+	}
+	awsAdapter := awsstorage.NewAWSStorageAdapter(awsConfig, presignExpirationMinutes)
 
 	defaultCacheExpirationSeconds := envLoader.GetAndLogEnvVar(envPrefix+"DEFAULT_CACHE_EXPIRATION_SECONDS", false, false)
 	cacheAdapter := cacheadapter.NewCacheAdapter(defaultCacheExpirationSeconds)
@@ -81,32 +117,40 @@ func main() {
 	mtAppID := envLoader.GetAndLogEnvVar(envPrefix+"MULTI_TENANCY_APP_ID", true, true)
 	mtOrgID := envLoader.GetAndLogEnvVar(envPrefix+"MULTI_TENANCY_ORG_ID", true, true)
 
+	//core adapter
+	var serviceAccountManager *authservice.ServiceAccountManager
+
+	serviceAccountID := envLoader.GetAndLogEnvVar(envPrefix+"SERVICE_ACCOUNT_ID", false, false)
+	privKeyRaw := envLoader.GetAndLogEnvVar(envPrefix+"PRIV_KEY", true, true)
+	privKeyRaw = strings.ReplaceAll(privKeyRaw, "\\n", "\n")
+	privKey, err := keys.NewPrivKey(keys.PS256, privKeyRaw)
+	if err != nil {
+		logger.Errorf("Error parsing priv key: %v", err)
+	} else if serviceAccountID == "" {
+		logger.Errorf("Missing service account id")
+	} else {
+		signatureAuth, err := sigauth.NewSignatureAuth(privKey, serviceRegManager, false, false)
+		if err != nil {
+			logger.Fatalf("Error initializing signature auth: %v", err)
+		}
+
+		serviceAccountLoader, err := authservice.NewRemoteServiceAccountLoader(&authService, serviceAccountID, signatureAuth)
+		if err != nil {
+			logger.Fatalf("Error initializing remote service account loader: %v", err)
+		}
+
+		serviceAccountManager, err = authservice.NewServiceAccountManager(&authService, serviceAccountLoader)
+		if err != nil {
+			logger.Fatalf("Error initializing service account manager: %v", err)
+		}
+	}
+	coreAdapter := corebb.NewCoreAdapter(coreBBHost, serviceAccountManager)
+
 	// application
-	application := core.NewApplication(Version, Build, storageAdapter, awsAdapter, twitterAdapter, cacheAdapter, mtAppID, mtOrgID)
+	application := core.NewApplication(Version, Build, storageAdapter, awsAdapter, twitterAdapter, cacheAdapter, mtAppID, mtOrgID, serviceID, coreAdapter, logger)
 	application.Start()
 
 	// web adapter
-	host := envLoader.GetAndLogEnvVar(envPrefix+"HOST", true, false)
-	coreBBHost := envLoader.GetAndLogEnvVar(envPrefix+"CORE_BB_HOST", true, false)
-	contentServiceURL := envLoader.GetAndLogEnvVar(envPrefix+"SERVICE_URL", true, false)
-
-	authService := authservice.AuthService{
-		ServiceID:   "content",
-		ServiceHost: contentServiceURL,
-		FirstParty:  true,
-		AuthBaseURL: coreBBHost,
-	}
-
-	serviceRegLoader, err := authservice.NewRemoteServiceRegLoader(&authService, []string{"core"})
-	if err != nil {
-		log.Fatalf("Error initializing remote service registration loader: %v", err)
-	}
-
-	serviceRegManager, err := authservice.NewServiceRegManager(&authService, serviceRegLoader, !strings.HasPrefix(contentServiceURL, "http://localhost"))
-	if err != nil {
-		log.Fatalf("Error initializing service registration manager: %v", err)
-	}
-
 	var corsAllowedHeaders []string
 	var corsAllowedOrigins []string
 	corsAllowedHeadersStr := envLoader.GetAndLogEnvVar(envPrefix+"CORS_ALLOWED_HEADERS", false, true)

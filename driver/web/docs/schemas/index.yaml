@@ -1,0 +1,5 @@
+# application
+Reward:
+  $ref: "./application/ContentItem.yaml"
+RewardClaim:
+  $ref: "./application/ImageSpec.yaml"

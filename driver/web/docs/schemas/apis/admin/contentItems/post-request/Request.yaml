@@ -1,0 +1,14 @@
+type: object
+properties:
+  ids:
+    type: array
+    items:
+      type: string
+  categories:
+    type: array
+    items:
+      type: string 
+  data:
+    type: array
+    items:
+      type: string        

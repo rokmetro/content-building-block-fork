@@ -1,0 +1,56 @@
+get:
+  tags:
+    - Client
+  summary: Retrieves  all content items
+  description: |
+    Retrieves  all content items
+  security:
+    - bearerAuth: []  
+  parameters:
+    - name: all-apps
+      in: query
+      description: all-apps
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: boolean
+    - name: offset
+      in: query
+      description: offset
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string  
+    - name: limit
+      in: query
+      description: limit the result
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string 
+    - name: order
+      in: query
+      description: Possible values - asc, desc. Default - desc
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string             
+  responses:
+    200:
+      description: Success
+      content:
+         application/json:
+           schema:
+             type: array
+             items:
+               $ref: "../../schemas/application/ContentItem.yaml"
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error

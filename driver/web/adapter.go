@@ -15,12 +15,17 @@
 package web
 
 import (
+	"bytes"
 	"content/core"
 	"content/driver/web/rest"
 	"content/utils"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"time"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/gorilla/mux"
 	"github.com/rokwire/core-auth-library-go/v3/authservice"
@@ -38,11 +43,14 @@ type Adapter struct {
 
 	apisHandler      rest.ApisHandler
 	adminApisHandler rest.AdminApisHandler
+	bbsApisHandler   rest.BBsApisHandler
+	tpsApisHandler   rest.TPsApisHandler
 
 	app *core.Application
 
 	corsAllowedOrigins []string
 	corsAllowedHeaders []string
+	cachedYamlDoc      []byte
 
 	logger *logs.Logger
 }
@@ -88,6 +96,10 @@ func (we Adapter) Start() {
 	contentRouter.HandleFunc("/profile_photo", we.coreAuthWrapFunc(we.apisHandler.StoreProfilePhoto, we.auth.coreAuth.userAuth)).Methods("POST")
 	contentRouter.HandleFunc("/profile_photo", we.coreAuthWrapFunc(we.apisHandler.DeleteProfilePhoto, we.auth.coreAuth.userAuth)).Methods("DELETE")
 
+	contentRouter.HandleFunc("/voice_record", we.coreAuthWrapFunc(we.apisHandler.StoreVoiceRecord, we.auth.coreAuth.userAuth)).Methods("POST")
+	contentRouter.HandleFunc("/voice_record", we.coreAuthWrapFunc(we.apisHandler.GetVoiceRecord, we.auth.coreAuth.userAuth)).Methods("GET")
+	contentRouter.HandleFunc("/voice_record", we.coreAuthWrapFunc(we.apisHandler.DeleteVoiceRecord, we.auth.coreAuth.userAuth)).Methods("DELETE")
+
 	// handle student guide client apis
 	contentRouter.HandleFunc("/student_guides", we.coreAuthWrapFunc(we.apisHandler.GetStudentGuides, we.auth.coreAuth.standardAuth)).Methods("GET")
 	contentRouter.HandleFunc("/student_guides/{id}", we.coreAuthWrapFunc(we.apisHandler.GetStudentGuide, we.auth.coreAuth.standardAuth)).Methods("GET")
@@ -99,8 +111,27 @@ func (we Adapter) Start() {
 	contentRouter.HandleFunc("/image", we.coreAuthWrapFunc(we.apisHandler.UploadImage, we.auth.coreAuth.userAuth)).Methods("POST")
 	contentRouter.HandleFunc("/twitter/users/{user_id}/tweets", we.coreAuthWrapFunc(we.apisHandler.GetTweeterPosts, we.auth.coreAuth.standardAuth)).Methods("GET")
 
+	contentRouter.HandleFunc("/data/{key}", we.coreAuthWrapFunc(we.apisHandler.GetDataContentItem, we.auth.coreAuth.standardAuth)).Methods("GET")
+	contentRouter.HandleFunc("/files", we.coreAuthWrapFunc(we.apisHandler.GetFileContentItem, we.auth.coreAuth.standardAuth)).Methods("GET")
+	contentRouter.HandleFunc("/data", we.coreAuthWrapFunc(we.apisHandler.GetDataContentItems, we.auth.coreAuth.standardAuth)).Methods("GET")
+
 	// handle student guide admin apis
 	adminSubRouter := contentRouter.PathPrefix("/admin").Subrouter()
+
+	adminSubRouter.HandleFunc("/data", we.coreAuthWrapFunc(we.adminApisHandler.CreateDataContentItem, we.auth.coreAuth.permissionsAuth)).Methods("POST")
+	adminSubRouter.HandleFunc("/data/{key}", we.coreAuthWrapFunc(we.adminApisHandler.GetDataContentItem, we.auth.coreAuth.permissionsAuth)).Methods("GET")
+	adminSubRouter.HandleFunc("/data", we.coreAuthWrapFunc(we.adminApisHandler.GetDataContentItems, we.auth.coreAuth.permissionsAuth)).Methods("GET")
+	adminSubRouter.HandleFunc("/data", we.coreAuthWrapFunc(we.adminApisHandler.UpdateDataContentItem, we.auth.coreAuth.permissionsAuth)).Methods("PUT")
+	adminSubRouter.HandleFunc("/data/{key}", we.coreAuthWrapFunc(we.adminApisHandler.DeleteDataContentItem, we.auth.coreAuth.permissionsAuth)).Methods("DELETE")
+
+	adminSubRouter.HandleFunc("/files", we.coreAuthWrapFunc(we.adminApisHandler.UploadFileContentItem, we.auth.coreAuth.permissionsAuth)).Methods("POST")
+	adminSubRouter.HandleFunc("/files", we.coreAuthWrapFunc(we.adminApisHandler.GetFileContentItem, we.auth.coreAuth.permissionsAuth)).Methods("GET")
+	adminSubRouter.HandleFunc("/files", we.coreAuthWrapFunc(we.adminApisHandler.DeleteFileContentItem, we.auth.coreAuth.permissionsAuth)).Methods("DELETE")
+
+	adminSubRouter.HandleFunc("/categories", we.coreAuthWrapFunc(we.adminApisHandler.CreateCategory, we.auth.coreAuth.permissionsAuth)).Methods("POST")
+	adminSubRouter.HandleFunc("/categories/{name}", we.coreAuthWrapFunc(we.adminApisHandler.GetCategory, we.auth.coreAuth.permissionsAuth)).Methods("GET")
+	adminSubRouter.HandleFunc("/categories", we.coreAuthWrapFunc(we.adminApisHandler.UpdateCategory, we.auth.coreAuth.permissionsAuth)).Methods("PUT")
+	adminSubRouter.HandleFunc("/categories/{name}", we.coreAuthWrapFunc(we.adminApisHandler.DeleteCategory, we.auth.coreAuth.permissionsAuth)).Methods("DELETE")
 
 	//deprecated
 	adminSubRouter.HandleFunc("/student_guides", we.coreAuthWrapFunc(we.adminApisHandler.GetStudentGuides, we.auth.coreAuth.permissionsAuth)).Methods("GET")
@@ -162,6 +193,14 @@ func (we Adapter) Start() {
 
 	adminSubRouter.HandleFunc("/image", we.coreAuthWrapFunc(we.adminApisHandler.UploadImage, we.auth.coreAuth.permissionsAuth)).Methods("POST")
 
+	// handle bbs apis
+	bbsSubRouter := contentRouter.PathPrefix("/bbs").Subrouter()
+	bbsSubRouter.HandleFunc("/image", we.authWrapFunc(we.bbsApisHandler.UploadImage, we.auth.bbs.Permissions)).Methods("POST")
+
+	// handle tps apis
+	tpsSubRouter := contentRouter.PathPrefix("/tps").Subrouter()
+	tpsSubRouter.HandleFunc("/image", we.authWrapFunc(we.tpsApisHandler.UploadImage, we.auth.tps.Permissions)).Methods("POST")
+
 	var handler http.Handler = router
 	if len(we.corsAllowedOrigins) > 0 {
 		handler = webauth.SetupCORS(we.corsAllowedOrigins, we.corsAllowedHeaders, router)
@@ -171,12 +210,47 @@ func (we Adapter) Start() {
 
 func (we Adapter) serveDoc(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("access-control-allow-origin", "*")
-	http.ServeFile(w, r, "./docs/swagger.yaml")
+
+	if we.cachedYamlDoc != nil {
+		http.ServeContent(w, r, "", time.Now(), bytes.NewReader([]byte(we.cachedYamlDoc)))
+	} else {
+		http.ServeFile(w, r, "./driver/web/docs/gen/def.yaml")
+	}
 }
 
 func (we Adapter) serveDocUI() http.Handler {
-	url := fmt.Sprintf("%s/content/doc", we.host)
+	url := fmt.Sprintf("%s/doc", we.host)
 	return httpSwagger.Handler(httpSwagger.URL(url))
+}
+
+func loadDocsYAML(baseServerURL string) ([]byte, error) {
+	data, _ := os.ReadFile("./driver/web/docs/gen/def.yaml")
+	// yamlMap := make(map[string]interface{})
+	yamlMap := yaml.MapSlice{}
+	err := yaml.Unmarshal(data, &yamlMap)
+	if err != nil {
+		return nil, err
+	}
+
+	for index, item := range yamlMap {
+		if item.Key == "servers" {
+			var serverList []interface{}
+			if baseServerURL != "" {
+				serverList = []interface{}{yaml.MapSlice{yaml.MapItem{Key: "url", Value: baseServerURL}}}
+			}
+
+			item.Value = serverList
+			yamlMap[index] = item
+			break
+		}
+	}
+
+	yamlDoc, err := yaml.Marshal(&yamlMap)
+	if err != nil {
+		return nil, err
+	}
+
+	return yamlDoc, nil
 }
 
 func (we Adapter) wrapFunc(handler http.HandlerFunc) http.HandlerFunc {
@@ -203,14 +277,39 @@ func (we Adapter) coreAuthWrapFunc(handler coreAuthFunc, authorization Authoriza
 	}
 }
 
+type bbsAuthFunc = func(*tokenauth.Claims, http.ResponseWriter, *http.Request)
+
+func (we Adapter) authWrapFunc(handler bbsAuthFunc, authorization tokenauth.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		utils.LogRequest(req)
+
+		responseStatus, claims, err := authorization.Check(req)
+		if err != nil {
+			log.Printf("error authorization check - %s", err)
+			http.Error(w, http.StatusText(responseStatus), responseStatus)
+			return
+		}
+		handler(claims, w, req)
+	}
+}
+
 // NewWebAdapter creates new WebAdapter instance
 func NewWebAdapter(host string, port string, app *core.Application, serviceRegManager *authservice.ServiceRegManager,
 	corsAllowedOrigins []string, corsAllowedHeaders []string, logger *logs.Logger) Adapter {
-	auth := NewAuth(app, serviceRegManager)
+	yamlDoc, err := loadDocsYAML(host)
+	if err != nil {
+		logger.Fatalf("error parsing docs yaml - %s", err.Error())
+	}
+
+	auth := NewAuth(app, serviceRegManager, logger)
 
 	apisHandler := rest.NewApisHandler(app)
 	adminApisHandler := rest.NewAdminApisHandler(app)
-	return Adapter{host: host, port: port, auth: auth, apisHandler: apisHandler, adminApisHandler: adminApisHandler, app: app,
+	bbsApisHandler := rest.NewBBSApisHandler(app)
+	tpsApisHandler := rest.NewTPSApisHandler(app)
+	return Adapter{host: host, port: port, cachedYamlDoc: yamlDoc, auth: auth,
+		apisHandler: apisHandler, adminApisHandler: adminApisHandler,
+		bbsApisHandler: bbsApisHandler, tpsApisHandler: tpsApisHandler, app: app,
 		corsAllowedOrigins: corsAllowedOrigins, corsAllowedHeaders: corsAllowedHeaders, logger: logger}
 }
 

@@ -1,0 +1,88 @@
+get:
+  tags:
+  - Admin
+  deprecated: true
+  summary: Retrieves a health locations by id
+  description: |
+    Retrieves a health locations by id
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: id
+      in: path
+      description: the locations id
+      required: true
+      style: simple
+      explode: false
+      schema:
+        type: string
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error
+put:
+  tags:
+    - Admin
+  deprecated: true  
+  summary: Updates a health locations with the specified id
+  description: |
+    Updates a health locations with the specified id
+  security:
+    - bearerAuth: [] 
+  requestBody:
+     description: Updates a health locations items
+     content:
+       application/json:
+         schema:
+           $ref: "../../schemas/apis/admin/health-locations/request/Request.yaml"  
+  parameters:
+    - name: id
+      in: path
+      description: the locations id
+      required: true
+      style: simple
+      explode: false
+      schema:
+        type: string                   
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error
+delete:
+  tags:
+  - Admin
+  deprecated: true
+  summary: Delete a health locations by id
+  description: |
+    Delete a health locations by id
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: id
+      in: path
+      description: the locations id
+      required: true
+      style: simple
+      explode: false
+      schema:
+        type: string
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error      
+

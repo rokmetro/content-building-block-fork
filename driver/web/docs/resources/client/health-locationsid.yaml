@@ -1,0 +1,26 @@
+get:
+  tags:
+  - Client
+  summary: Retrieves a health location by id
+  description: |
+    Retrieves a health location by id
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: guide_id
+      in: path
+      description: the id of the user
+      required: true
+      style: simple
+      explode: false
+      schema:
+        type: string
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error

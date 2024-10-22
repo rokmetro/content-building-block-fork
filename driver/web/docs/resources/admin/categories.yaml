@@ -1,0 +1,54 @@
+post:
+  tags:
+    - Admin 
+  summary: Admin API that Creates a category
+  description: |
+    Creates a category
+
+    **Auth:** Requires admin token with `all_admin_content` permission
+  security:
+    - bearerAuth: [] 
+  requestBody:
+     description: Creates category
+     content:
+       application/json:
+         schema:
+           $ref: "../../schemas/apis/admin/categories/Categories.yaml"          
+  responses:
+    200:
+      description: Success
+      content:
+        application/json:
+          schema:
+            ref: "../../schemas/apis/admin/categories/Categories.yaml"
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error 
+put:
+  tags:
+    - Admin
+  summary: Admin API that Updates a category
+  description: |
+    Updates a category
+
+    **Auth:** Requires admin token with `all_admin_content` permission
+  security:
+    - bearerAuth: [] 
+  requestBody:
+    description: Updates a category
+    content:
+      application/json:
+        schema:
+          $ref: "../../schemas/apis/admin/categories/Categories.yaml"                         
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error

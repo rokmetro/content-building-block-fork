@@ -19,6 +19,7 @@ import (
 	"content/core/model"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -28,6 +29,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rokwire/core-auth-library-go/v3/tokenauth"
 	"go.mongodb.org/mongo-driver/bson"
+
+	"github.com/gabriel-vasile/mimetype"
 )
 
 const maxUploadSize = 15 * 1024 * 1024 // 15 mb
@@ -196,6 +199,99 @@ func (h ApisHandler) DeleteProfilePhoto(claims *tokenauth.Claims, w http.Respons
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+// StoreVoiceRecord store the user voice record
+func (h ApisHandler) StoreVoiceRecord(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
+	// validate file size
+	maxUploadAudioFileSize := int64(5 * 1024 * 1024) // 5 mb
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadAudioFileSize)
+	if err := r.ParseMultipartForm(maxUploadAudioFileSize); err != nil {
+		msg := fmt.Sprintf("Error parsing request form: max audio file size is %d, err %v", maxUploadAudioFileSize, err)
+		log.Println(msg)
+		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
+
+	// parse and validate file and post parameters
+	file, _, err := r.FormFile("voiceRecord")
+	if err != nil {
+		msg := fmt.Sprintf("Error reading file: %v", err)
+		log.Println(msg)
+		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		msg := fmt.Sprintf("Error reading file: %v", err)
+		log.Println(msg)
+		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
+
+	// check file type
+	mime := mimetype.Detect(fileBytes)
+	if mime == nil {
+		msg := fmt.Sprintf("Error checking file type: %v", err)
+		log.Println(msg)
+		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
+
+	if mime.String() != "audio/mp4" && mime.String() != "audio/x-m4a" &&
+		mime.String() != "audio/m4a" && mime.String() != "video/mp4" {
+		log.Printf("Invalid file type - %s\n", mime.String())
+		http.Error(w, "Invalid file type. Expected m4a!", http.StatusBadRequest)
+		return
+	}
+
+	// upload voice record
+	err = h.app.Services.UploadVoiceRecord(claims.Subject, fileBytes)
+	if err != nil {
+		log.Printf("Error uploading voice record: %s\n", err)
+		http.Error(w, "Error uploading voice record", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Success"))
+}
+
+// GetVoiceRecord gets the user voice record
+func (h ApisHandler) GetVoiceRecord(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
+
+	fileBytes, err := h.app.Services.GetVoiceRecord(claims.Subject)
+	if err != nil || len(fileBytes) == 0 {
+		if err != nil {
+			log.Printf("error on retrieve AWS audio file: %s", err)
+		} else {
+			log.Printf("voice record audio not found for user %s", claims.Subject)
+		}
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "audio/m4a")
+	w.WriteHeader(http.StatusOK)
+	w.Write(fileBytes)
+}
+
+// DeleteVoiceRecord deletes the user voice record
+func (h ApisHandler) DeleteVoiceRecord(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
+
+	err := h.app.Services.DeleteVoiceRecord(claims.Subject)
+	if err != nil {
+		if err != nil {
+			log.Printf("error on delete AWS voice audio file: %s", err)
+		}
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Success"))
 }
 
 // GetStudentGuides retrieves  all student guides
@@ -636,6 +732,117 @@ func (h ApisHandler) GetTweeterPosts(claims *tokenauth.Claims, w http.ResponseWr
 	w.Write(data)
 }
 
+// GetDataContentItem Gets a data content type item
+// @Description Gets a data content type item
+// @Tags Client
+// @ID GetDataContentItem
+// @Accept json
+// @Produce json
+// @Success 200
+// @Security UserAuth
+// @Router /data/{key} [get]
+func (h ApisHandler) GetDataContentItem(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	key := vars["key"]
+
+	resData, err := h.app.Services.GetDataContentItem(claims, key)
+	if err != nil {
+		log.Printf("Error on getting data content type with key - %s\n %s", key, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data, err := json.Marshal(resData)
+	if err != nil {
+		log.Println("Error on marshal of data content type")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+// GetFileContentItem Get a file to AWS S3
+// @Description Get a file to AWS S3
+// @Tags Client
+// @ID GetFileContentItem
+// @Param fileName body string false "fileName - the uploaded file name"
+// @Param category body string false "category - category of file content item"
+// @Success 200
+// @Security UserAuth
+// @Router /files [get]
+func (h ApisHandler) GetFileContentItem(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
+
+	fileName := r.URL.Query().Get("fileName")
+	if len(fileName) <= 0 {
+		log.Print("Missing file name\n")
+		http.Error(w, "missing 'fileName' query param", http.StatusBadRequest)
+		return
+	}
+
+	category := r.URL.Query().Get("category")
+	if len(category) <= 0 {
+		log.Print("Missing category\n")
+		http.Error(w, "missing 'category' query param", http.StatusBadRequest)
+		return
+	}
+
+	fileData, err := h.app.Services.GetFileContentItem(claims, fileName, category)
+	if err != nil {
+		log.Printf("Error getting file download stream: %s\n", err)
+		http.Error(w, "Error getting file download stream", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = io.Copy(w, fileData)
+	if err != nil {
+		log.Printf("Error copying file into response: %s\n", err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
+	w.Header().Set("Cache-Control", "no-store")
+}
+
+// GetDataContentItems Gets data content items
+// @Descriptions Gets data content items
+// @Tags Client
+// @ID GetDataContentItems
+// @Param category body string false "category - get all data content items based on category"
+// @Accept json
+// @Produce json
+// @Success 200
+// @Security UserAuth
+// @Router /data [get]
+func (h ApisHandler) GetDataContentItems(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
+	category := r.URL.Query().Get("category")
+	if len(category) <= 0 {
+		log.Print("Missing category\n")
+		http.Error(w, "missing 'category' query param", http.StatusBadRequest)
+		return
+	}
+
+	resData, err := h.app.Services.GetDataContentItems(claims, category)
+	if err != nil {
+		log.Printf("Error on getting data content items with category - %s\n %s", category, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data, err := json.Marshal(resData)
+	if err != nil {
+		log.Println("Error on marshal of data content type")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
 func intPostValueFromString(stringValue string) int {
 	var value int
 	if len(stringValue) > 0 {
@@ -655,4 +862,14 @@ func NewApisHandler(app *core.Application) ApisHandler {
 // NewAdminApisHandler creates new rest Handler instance
 func NewAdminApisHandler(app *core.Application) AdminApisHandler {
 	return AdminApisHandler{app: app}
+}
+
+// NewBBSApisHandler creates new rest Handler instance
+func NewBBSApisHandler(app *core.Application) BBsApisHandler {
+	return BBsApisHandler{app: app}
+}
+
+// NewTPSApisHandler creates new rest Handler instance
+func NewTPSApisHandler(app *core.Application) TPsApisHandler {
+	return TPsApisHandler{app: app}
 }

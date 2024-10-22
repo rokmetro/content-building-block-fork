@@ -1,0 +1,92 @@
+post:
+  tags:
+    - Admin 
+  summary: Admin API that Creates a data content item
+  description: |
+    Creates a new data content item
+
+    **Auth:** Requires admin token with `all_admin_content` permission
+  security:
+    - bearerAuth: [] 
+  requestBody:
+     description: Creates a data content item
+     content:
+       application/json:
+         schema:
+           $ref: "../../schemas/apis/admin/data-content-item/DataContentItem.yaml"          
+  responses:
+    200:
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/application/DataContentItem.yaml"
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error 
+put:
+  tags:
+    - Admin
+  summary: Admin API that Updates data content item 
+  description: |
+    Updates data content item 
+
+    **Auth:** Requires admin token with `all_admin_content` permission
+  security:
+    - bearerAuth: [] 
+  requestBody:
+     description: Updates data content item
+     content:
+       application/json:
+          schema:
+            $ref: "../../schemas/apis/admin/data-content-item/DataContentItem.yaml"                         
+  responses:
+    200:
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/application/DataContentItem.yaml"
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error
+get:
+  tags:
+    - Admin
+  summary: Admin API that retrieves data content items
+  description: |
+    Retrieves data content items
+
+    **Auth:** Requires admin token with `all_admin_content` permission
+  security:
+    - bearerAuth: []         
+  parameters:
+    - name: category
+      in: query
+      description: category of data content item
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string         
+  responses:
+    200:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "../../schemas/application/DataContentItem.yaml"
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error

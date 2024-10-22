@@ -1,0 +1,6 @@
+type: object
+properties:
+  ids:
+    type: string
+  categories:
+    type: string

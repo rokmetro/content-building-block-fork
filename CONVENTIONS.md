@@ -10,10 +10,11 @@ We should keep the changelog up to date as this is part of the open source platf
 
 ## API Documentation
 When implementing an API:
-- Use [swag](https://github.com/swaggo/swag) annotations when defining a new API handler function
-- Run `make swagger` to generate the `swagger.yaml`, `swagger.json`, and `docs.go` files stored in the `docs/` folder. To run this command, you will need to install [swag](https://github.com/swaggo/swag). This command will automatically generate Open API 3 documentation for all functions using the annotations. Please do not change any of the files in the `docs/` folder manually.
+- Define the OpenAPI 3.0 documentation for the API in the appropriate yaml files stored in `driver/web/docs` folder.
+- Run `make oapi-gen-docs` to generate the `def.yaml` file stored in `driver/web/docs/gen` folder. To run this command, you will need to install [swagger-cli](https://github.com/APIDevTools/swagger-cli). This command will merge all OpenAPI files into the `def.yaml` file. Please do not change the `def.yaml` file manually.
+- Run `make oapi-gen-types` to generate the Go types from the `def.yaml` file. To run this command, you will need to install [oapi-codegen](https://github.com/deepmap/oapi-codegen). This command will update the `driver/web/docs/gen/gen_types.go` file with the new generated types.
+- Implement the API handler function using the generated Go structs in `driver/web/docs/gen/gen_types.go`
 - Test you API via the documentation - Open http://localhost/content/doc/ui/ , choose "Local server" from the "Servers" combobox and run your API. This is an alternative to Postman. Make sure to set the correct value in the `HOST` environment variable (eg. http://localhost/content) before running the service to access the docs.
-
 ## Pull Requests
 Pull requests should be linked to the associated issue with a [keyword](https://docs.github.com/en/issues/tracking-your-work-with-issues/creating-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword) in the description (eg. `Resolves #{issue number}`). This will close the issue automatically when the PR is merged. 
 
