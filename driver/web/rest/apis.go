@@ -476,6 +476,7 @@ func (h ApisHandler) GetHealthLocation(claims *tokenauth.Claims, w http.Response
 // @Success 200 {array} model.ContentItem
 // @Security UserAuth
 // @Router /content_items [get]
+// @Router /content_items [post]
 func (h ApisHandler) GetContentItems(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
 	//get all-apps param value
 	allApps := false //false by defautl

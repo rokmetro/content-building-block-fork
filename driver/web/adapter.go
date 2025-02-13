@@ -106,7 +106,7 @@ func (we Adapter) Start() {
 	contentRouter.HandleFunc("/student_guides/{id}", we.coreAuthWrapFunc(we.apisHandler.GetStudentGuide, we.auth.coreAuth.standardAuth)).Methods("GET")
 	contentRouter.HandleFunc("/health_locations", we.coreAuthWrapFunc(we.apisHandler.GetHealthLocations, we.auth.coreAuth.standardAuth)).Methods("GET")
 	contentRouter.HandleFunc("/health_locations/{id}", we.coreAuthWrapFunc(we.apisHandler.GetHealthLocation, we.auth.coreAuth.standardAuth)).Methods("GET")
-	contentRouter.HandleFunc("/content_items", we.coreAuthWrapFunc(we.apisHandler.GetContentItems, we.auth.coreAuth.standardAuth)).Methods("GET")
+	contentRouter.HandleFunc("/content_items", we.coreAuthWrapFunc(we.apisHandler.GetContentItems, we.auth.coreAuth.standardAuth)).Methods("GET", "POST")
 	contentRouter.HandleFunc("/content_items/{id}", we.coreAuthWrapFunc(we.apisHandler.GetContentItem, we.auth.coreAuth.standardAuth)).Methods("GET")
 	contentRouter.HandleFunc("/content_item/categories", we.coreAuthWrapFunc(we.apisHandler.GetContentItemsCategories, we.auth.coreAuth.standardAuth)).Methods("GET")
 	contentRouter.HandleFunc("/image", we.coreAuthWrapFunc(we.apisHandler.UploadImage, we.auth.coreAuth.userAuth)).Methods("POST")
