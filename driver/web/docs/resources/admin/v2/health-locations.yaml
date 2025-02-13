@@ -5,13 +5,7 @@ get:
   description: |
     Retrieves health locations
   security:
-    - bearerAuth: [] 
-  requestBody:
-     description: Retrieves  all content items
-     content:
-       application/json:
-         schema:
-           $ref: "../../../schemas/apis/client/content-items/request/Request.yaml"     
+    - bearerAuth: []   
   parameters:
     - name: all-apps
       in: query
