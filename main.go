@@ -111,12 +111,17 @@ func main() {
 		S3UsersAudiosBucket:   s3UsersAudiosBucket,
 		S3Region:              s3Region, AWSAccessKeyID: awsAccessKeyID, AWSSecretAccessKey: awsSecretAccessKey}
 
-	presignExpirationMinutesVal := envLoader.GetAndLogEnvVar(envPrefix+"S3_REQUEST_PRESIGN_EXPIRATION_MINUTES", false, false)
-	presignExpirationMinutes, err := strconv.Atoi(presignExpirationMinutesVal)
+	uploadPresignExpirationMinutesVal := envLoader.GetAndLogEnvVar(envPrefix+"S3_UPLOAD_PRESIGN_EXPIRATION_MINUTES", false, false)
+	uploadPresignExpirationMinutes, err := strconv.Atoi(uploadPresignExpirationMinutesVal)
 	if err != nil {
-		logger.Warnf("error parsing S3 request presign expiration minutes: %s - applying default", err.Error())
+		logger.Warnf("error parsing S3 upload presign expiration minutes: %s - applying default", err.Error())
 	}
-	awsAdapter := awsstorage.NewAWSStorageAdapter(awsConfig, presignExpirationMinutes)
+	downloadPresignExpirationMinutesVal := envLoader.GetAndLogEnvVar(envPrefix+"S3_DOWNLOAD_PRESIGN_EXPIRATION_MINUTES", false, false)
+	downloadPresignExpirationMinutes, err := strconv.Atoi(downloadPresignExpirationMinutesVal)
+	if err != nil {
+		logger.Warnf("error parsing S3 download presign expiration minutes: %s - applying default", err.Error())
+	}
+	awsAdapter := awsstorage.NewAWSStorageAdapter(awsConfig, uploadPresignExpirationMinutes, downloadPresignExpirationMinutes)
 
 	defaultCacheExpirationSeconds := envLoader.GetAndLogEnvVar(envPrefix+"DEFAULT_CACHE_EXPIRATION_SECONDS", false, false)
 	cacheAdapter := cacheadapter.NewCacheAdapter(defaultCacheExpirationSeconds)

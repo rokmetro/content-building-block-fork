@@ -32,22 +32,28 @@ import (
 )
 
 const (
-	defaultPresignExpirationMinutes int = 5
+	defaultUploadPresignExpirationMinutes   int = 5
+	defaultDownloadPresignExpirationMinutes int = 60 * 24
 )
 
 // Adapter implements the Storage interface
 type Adapter struct {
-	config                   *model.AWSConfig
-	presignExpirationMinutes int
+	config *model.AWSConfig
+
+	uploadPresignExpirationMinutes   int
+	downloadPresignExpirationMinutes int
 }
 
 // NewAWSStorageAdapter creates a new storage adapter instance
-func NewAWSStorageAdapter(config *model.AWSConfig, presignExpirationMinutes int) *Adapter {
+func NewAWSStorageAdapter(config *model.AWSConfig, uploadPresignExpirationMinutes int, downloadPresignExpirationMinutes int) *Adapter {
 	//return &Adapter{S3Bucket: S3Bucket, S3Region: S3Region, AWSAccessKeyID: AWSAccessKeyID, AWSSecretAccessKey: AWSSecretAccessKey}
-	if presignExpirationMinutes == 0 {
-		presignExpirationMinutes = defaultPresignExpirationMinutes
+	if uploadPresignExpirationMinutes == 0 {
+		uploadPresignExpirationMinutes = defaultUploadPresignExpirationMinutes
 	}
-	return &Adapter{config: config, presignExpirationMinutes: presignExpirationMinutes}
+	if downloadPresignExpirationMinutes == 0 {
+		downloadPresignExpirationMinutes = defaultDownloadPresignExpirationMinutes
+	}
+	return &Adapter{config: config, uploadPresignExpirationMinutes: uploadPresignExpirationMinutes, downloadPresignExpirationMinutes: downloadPresignExpirationMinutes}
 }
 
 // LoadImage loads image at specific path
@@ -267,7 +273,7 @@ func (a *Adapter) GetPresignedURLsForUpload(fileNames, paths []string) (map[stri
 			Bucket: aws.String(a.config.S3Bucket),
 			Key:    aws.String(path),
 		})
-		url, err := req.Presign(time.Duration(a.presignExpirationMinutes) * time.Minute)
+		url, err := req.Presign(time.Duration(a.uploadPresignExpirationMinutes) * time.Minute)
 		if err != nil {
 			return nil, err
 		}
@@ -319,7 +325,7 @@ func (a *Adapter) GetPresignedURLsForDownload(fileNames, paths []string) (map[st
 			Bucket: aws.String(a.config.S3Bucket),
 			Key:    aws.String(path),
 		})
-		url, err := req.Presign(time.Duration(a.presignExpirationMinutes) * time.Minute)
+		url, err := req.Presign(time.Duration(a.downloadPresignExpirationMinutes) * time.Minute)
 		if err != nil {
 			return nil, err
 		}
