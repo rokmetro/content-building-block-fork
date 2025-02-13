@@ -254,14 +254,14 @@ func (a *Adapter) UploadFile(body io.Reader, path string) (*string, error) {
 }
 
 // GetPresignedURLsForUpload gets a set of presigned URLs for file upload directly to S3 by a client application
-func (a *Adapter) GetPresignedURLsForUpload(fileNames, paths []string) (map[string]string, error) {
+func (a *Adapter) GetPresignedURLsForUpload(fileIDs, paths []string) ([]model.FileContentItemRef, error) {
 	s, err := a.createS3Session(a.config.S3BucketAccelerate)
 	if err != nil {
 		log.Printf("Could not create S3 session")
 		return nil, err
 	}
 
-	urls := make(map[string]string)
+	refs := make([]model.FileContentItemRef, len(paths))
 	for i, path := range paths {
 		req, _ := s3.New(s).PutObjectRequest(&s3.PutObjectInput{
 			Bucket: aws.String(a.config.S3Bucket),
@@ -271,9 +271,9 @@ func (a *Adapter) GetPresignedURLsForUpload(fileNames, paths []string) (map[stri
 		if err != nil {
 			return nil, err
 		}
-		urls[url] = fileNames[i]
+		refs[i] = model.FileContentItemRef{ID: fileIDs[i], URL: url}
 	}
-	return urls, nil
+	return refs, nil
 }
 
 // DownloadFile loads a file at a specific path
@@ -306,14 +306,14 @@ func (a *Adapter) DownloadFile(path string) ([]byte, error) {
 }
 
 // GetPresignedURLsForDownload gets a set of presigned URLs for file download directly from S3 by a client application
-func (a *Adapter) GetPresignedURLsForDownload(fileNames, paths []string) (map[string]string, error) {
+func (a *Adapter) GetPresignedURLsForDownload(fileIDs, paths []string) ([]model.FileContentItemRef, error) {
 	s, err := a.createS3Session(a.config.S3BucketAccelerate)
 	if err != nil {
 		log.Printf("Could not create S3 session")
 		return nil, err
 	}
 
-	urls := make(map[string]string)
+	refs := make([]model.FileContentItemRef, len(paths))
 	for i, path := range paths {
 		req, _ := s3.New(s).GetObjectRequest(&s3.GetObjectInput{
 			Bucket: aws.String(a.config.S3Bucket),
@@ -323,9 +323,9 @@ func (a *Adapter) GetPresignedURLsForDownload(fileNames, paths []string) (map[st
 		if err != nil {
 			return nil, err
 		}
-		urls[url] = fileNames[i]
+		refs[i] = model.FileContentItemRef{ID: fileIDs[i], URL: url}
 	}
-	return urls, nil
+	return refs, nil
 }
 
 // StreamDownloadFile streams a file downlod from S3

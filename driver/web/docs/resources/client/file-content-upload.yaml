@@ -7,9 +7,9 @@ get:
   security:
     - bearerAuth: [] 
   parameters:
-    - name: fileNames
+    - name: count
       in: query
-      description: comma-separated list of names of the files
+      description: number of URLs to generate
       required: true
       style: form
       explode: false
@@ -39,7 +39,7 @@ get:
           schema:
             type: array
             items:
-              type: string
+              $ref: "../../schemas/application/FileContentItemRef.yaml"
     400:
       description: Bad request
     401:

@@ -1,0 +1,9 @@
+required:
+  - id
+  - url
+type: object
+properties:
+  id:
+    type: string
+  url:
+    type: string

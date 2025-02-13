@@ -3,7 +3,7 @@ get:
   - Apis
   summary: Retrieves the profile photo
   description: |
-    Retrieves a reward inventory by id
+    Retrieves the user's profile photo
   security:
     - bearerAuth: []
   parameters:

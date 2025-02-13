@@ -581,40 +581,43 @@ func (s *servicesImpl) GetFileContentItem(claims *tokenauth.Claims, fileName str
 	return fileData, nil
 }
 
-func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, fileNames []string, entityID string, category string) (map[string]string, error) {
-	paths := make([]string, len(fileNames))
-	for i, name := range fileNames {
+func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, count int, entityID string, category string) ([]model.FileContentItemRef, error) {
+	paths := make([]string, count)
+	fileIDs := make([]string, count)
+	for i := 0; i < count; i++ {
+		fileIDs[i] = uuid.NewString()
+
 		paths[i] = claims.OrgID + "/" + claims.AppID + "/" + category
 		if entityID != "" {
 			paths[i] += "/" + entityID
 		}
-		paths[i] += "/" + name
+		paths[i] += "/" + fileIDs[i]
 	}
 
-	urls, err := s.app.awsAdapter.GetPresignedURLsForUpload(fileNames, paths)
+	fileRefs, err := s.app.awsAdapter.GetPresignedURLsForUpload(fileIDs, paths)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get file upload urls: %s", err.Error())
+		return nil, fmt.Errorf("unable to get file upload references: %s", err.Error())
 	}
 
-	return urls, nil
+	return fileRefs, nil
 }
 
-func (s *servicesImpl) GetFileContentDownloadURLs(claims *tokenauth.Claims, fileNames []string, entityID string, category string) (map[string]string, error) {
-	paths := make([]string, len(fileNames))
-	for i, name := range fileNames {
+func (s *servicesImpl) GetFileContentDownloadURLs(claims *tokenauth.Claims, fileIDs []string, entityID string, category string) ([]model.FileContentItemRef, error) {
+	paths := make([]string, len(fileIDs))
+	for i, id := range fileIDs {
 		paths[i] = claims.OrgID + "/" + claims.AppID + "/" + category
 		if entityID != "" {
 			paths[i] += "/" + entityID
 		}
-		paths[i] += "/" + name
+		paths[i] += "/" + id
 	}
 
-	urls, err := s.app.awsAdapter.GetPresignedURLsForDownload(fileNames, paths)
+	fileRefs, err := s.app.awsAdapter.GetPresignedURLsForDownload(fileIDs, paths)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get file download urls: %s", err.Error())
+		return nil, fmt.Errorf("unable to get file download references: %s", err.Error())
 	}
 
-	return urls, nil
+	return fileRefs, nil
 }
 
 func (s *servicesImpl) DeleteFileContentItem(claims *tokenauth.Claims, fileName string, category string) error {
