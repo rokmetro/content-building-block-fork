@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add CORS support
 - Support user file uploads to S3 [#114](https://github.com/rokwire/content-building-block/issues/114)
 - Add POST /content-items API
+- Separate S3 signed URL expiration environment variables
 ### Changed
 - Generate file IDs for S3 file uploads
 
