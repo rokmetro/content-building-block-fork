@@ -7,9 +7,9 @@ get:
   security:
     - bearerAuth: [] 
   parameters:
-    - name: count
+    - name: fileNames
       in: query
-      description: number of URLs to generate
+      description: comma-separated list of names of the files
       required: true
       style: form
       explode: false

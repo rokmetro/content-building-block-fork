@@ -7,9 +7,9 @@ get:
   security:
     - bearerAuth: [] 
   parameters:
-    - name: fileIDs
+    - name: fileKeys
       in: query
-      description: comma-separated list of IDs of the files
+      description: comma-separated list of keys of the files
       required: true
       style: form
       explode: false

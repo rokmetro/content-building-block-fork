@@ -834,22 +834,23 @@ func (h ApisHandler) GetFileContentItem(claims *tokenauth.Claims, w http.Respons
 // @ID GetFileContentUploadURLs
 // @Param fileNames body string false "fileNames - comma-separated list of file names"
 // @Param category body string false "category - category of file content item"
+// @Param entityID body string false "category - id of entity file content item belongs to"
 // @Success 200
 // @Security UserAuth
 // @Router /files/upload [get]
 func (h ApisHandler) GetFileContentUploadURLs(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
 
-	fileCountStr := r.URL.Query().Get("count")
-	if len(fileCountStr) <= 0 {
-		log.Print("Missing file count query param\n")
-		http.Error(w, "missing 'count' query param", http.StatusBadRequest)
+	fileNamesStr := r.URL.Query().Get("fileNames")
+	if len(fileNamesStr) <= 0 {
+		log.Print("Missing file names query param\n")
+		http.Error(w, "missing 'fileNames' query param", http.StatusBadRequest)
 		return
 	}
 
-	fileCount, err := strconv.Atoi(fileCountStr)
-	if fileCount <= 0 {
-		log.Print("Invalid file count query param\n")
-		http.Error(w, "invalid 'count' query param", http.StatusBadRequest)
+	fileNames := strings.Split(fileNamesStr, ",")
+	if len(fileNames) <= 0 {
+		log.Print("Missing file names\n")
+		http.Error(w, "missing file names", http.StatusBadRequest)
 		return
 	}
 
@@ -861,7 +862,7 @@ func (h ApisHandler) GetFileContentUploadURLs(claims *tokenauth.Claims, w http.R
 		return
 	}
 
-	fileRefs, err := h.app.Services.GetFileContentUploadURLs(claims, fileCount, entityID, category)
+	fileRefs, err := h.app.Services.GetFileContentUploadURLs(claims, fileNames, entityID, category)
 	if err != nil {
 		log.Printf("Error getting file upload references: %s\n", err)
 		http.Error(w, "Error getting file upload references", http.StatusInternalServerError)
@@ -886,22 +887,23 @@ func (h ApisHandler) GetFileContentUploadURLs(claims *tokenauth.Claims, w http.R
 // @ID GetFileContentDownloadURLs
 // @Param fileNames body string false "fileNames - comma-separated list of file names"
 // @Param category body string false "category - category of file content item"
+// @Param entityID body string false "category - id of entity file content item belongs to"
 // @Success 200
 // @Security UserAuth
 // @Router /files/download [get]
 func (h ApisHandler) GetFileContentDownloadURLs(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
 
-	fileIDsStr := r.URL.Query().Get("fileIDs")
-	if len(fileIDsStr) <= 0 {
-		log.Print("Missing file IDs query param\n")
-		http.Error(w, "missing 'fileIDs' query param", http.StatusBadRequest)
+	fileKeysStr := r.URL.Query().Get("fileKeys")
+	if len(fileKeysStr) <= 0 {
+		log.Print("Missing file keys query param\n")
+		http.Error(w, "missing 'fileKeys' query param", http.StatusBadRequest)
 		return
 	}
 
-	fileIDs := strings.Split(fileIDsStr, ",")
-	if len(fileIDs) <= 0 {
-		log.Print("Missing file IDs\n")
-		http.Error(w, "missing file IDs", http.StatusBadRequest)
+	fileKeys := strings.Split(fileKeysStr, ",")
+	if len(fileKeys) <= 0 {
+		log.Print("Missing file keys\n")
+		http.Error(w, "missing file keys", http.StatusBadRequest)
 		return
 	}
 
@@ -913,7 +915,7 @@ func (h ApisHandler) GetFileContentDownloadURLs(claims *tokenauth.Claims, w http
 		return
 	}
 
-	fileRefs, err := h.app.Services.GetFileContentDownloadURLs(claims, fileIDs, entityID, category)
+	fileRefs, err := h.app.Services.GetFileContentDownloadURLs(claims, fileKeys, entityID, category)
 	if err != nil {
 		log.Printf("Error getting file download references: %s\n", err)
 		http.Error(w, "Error getting file download references", http.StatusInternalServerError)
