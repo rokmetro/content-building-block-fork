@@ -1,9 +1,9 @@
 required:
-  - id
+  - key
   - url
 type: object
 properties:
-  id:
+  key:
     type: string
   url:
     type: string

@@ -16,6 +16,6 @@ package model
 
 // FileContentItemRef represents a reference to a file that is located in external storage at URL
 type FileContentItemRef struct {
-	ID  string `json:"id"`
+	Key string `json:"key"`
 	URL string `json:"url"`
 }

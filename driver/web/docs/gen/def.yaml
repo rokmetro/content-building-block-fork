@@ -2901,9 +2901,9 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: count
+        - name: fileNames
           in: query
-          description: number of URLs to generate
+          description: comma-separated list of names of the files
           required: true
           style: form
           explode: false
@@ -2950,9 +2950,9 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: fileIDs
+        - name: fileKeys
           in: query
-          description: comma-separated list of IDs of the files
+          description: comma-separated list of keys of the files
           required: true
           style: form
           explode: false
@@ -3144,11 +3144,11 @@ components:
           type: string
     FileContentItemRef:
       required:
-        - id
+        - key
         - url
       type: object
       properties:
-        id:
+        key:
           type: string
         url:
           type: string

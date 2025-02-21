@@ -260,7 +260,7 @@ func (a *Adapter) UploadFile(body io.Reader, path string) (*string, error) {
 }
 
 // GetPresignedURLsForUpload gets a set of presigned URLs for file upload directly to S3 by a client application
-func (a *Adapter) GetPresignedURLsForUpload(fileIDs, paths []string) ([]model.FileContentItemRef, error) {
+func (a *Adapter) GetPresignedURLsForUpload(fileKeys, paths []string) ([]model.FileContentItemRef, error) {
 	s, err := a.createS3Session(a.config.S3BucketAccelerate)
 	if err != nil {
 		log.Printf("Could not create S3 session")
@@ -277,7 +277,7 @@ func (a *Adapter) GetPresignedURLsForUpload(fileIDs, paths []string) ([]model.Fi
 		if err != nil {
 			return nil, err
 		}
-		refs[i] = model.FileContentItemRef{ID: fileIDs[i], URL: url}
+		refs[i] = model.FileContentItemRef{Key: fileKeys[i], URL: url}
 	}
 	return refs, nil
 }
@@ -312,7 +312,7 @@ func (a *Adapter) DownloadFile(path string) ([]byte, error) {
 }
 
 // GetPresignedURLsForDownload gets a set of presigned URLs for file download directly from S3 by a client application
-func (a *Adapter) GetPresignedURLsForDownload(fileIDs, paths []string) ([]model.FileContentItemRef, error) {
+func (a *Adapter) GetPresignedURLsForDownload(fileKeys, paths []string) ([]model.FileContentItemRef, error) {
 	s, err := a.createS3Session(a.config.S3BucketAccelerate)
 	if err != nil {
 		log.Printf("Could not create S3 session")
@@ -329,7 +329,7 @@ func (a *Adapter) GetPresignedURLsForDownload(fileIDs, paths []string) ([]model.
 		if err != nil {
 			return nil, err
 		}
-		refs[i] = model.FileContentItemRef{ID: fileIDs[i], URL: url}
+		refs[i] = model.FileContentItemRef{Key: fileKeys[i], URL: url}
 	}
 	return refs, nil
 }
