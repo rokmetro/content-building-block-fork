@@ -19,3 +19,10 @@ type FileContentItemRef struct {
 	Key string `json:"key"`
 	URL string `json:"url"`
 }
+
+// FileContentItemMultipartUpload stores metadata for a multipart file upload
+type FileContentItemMultipartUpload struct {
+	UploadID string   `json:"upload_id"`
+	Key      string   `json:"key"`
+	URLs     []string `json:"urls"`
+}

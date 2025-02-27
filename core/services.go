@@ -602,6 +602,27 @@ func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, fileNa
 	return fileRefs, nil
 }
 
+func (s *servicesImpl) InitiateMultipartFileUpload(claims *tokenauth.Claims, fileName string, fileSize int, entityID string, category string) (*model.FileContentItemMultipartUpload, error) {
+	fileKey := fmt.Sprintf("%s_%s", uuid.NewString(), fileName)
+	path := claims.OrgID + "/" + claims.AppID + "/" + category
+	if entityID != "" {
+		path += "/" + entityID
+	}
+	path += "/" + fileKey
+
+	uploadData, err := s.app.awsAdapter.GetPresignedURLsForMultipartUpload(fileKey, path, fileSize)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get signed urls for multipart file upload: %s", err.Error())
+	}
+
+	return uploadData, nil
+}
+
+func (s *servicesImpl) CompleteMultipartFileUpload(claims *tokenauth.Claims, uploadID string, fileKey string, entityID string, category string) error {
+	//TODO: implement
+	return fmt.Errorf("unimplemented")
+}
+
 func (s *servicesImpl) GetFileContentDownloadURLs(claims *tokenauth.Claims, fileKeys []string, entityID string, category string) ([]model.FileContentItemRef, error) {
 	paths := make([]string, len(fileKeys))
 	for i, key := range fileKeys {

@@ -1,0 +1,23 @@
+post:
+  tags:
+    - Client
+  summary: Client API that completes a multipart file upload to AWS S3
+  description: |
+    Completes a multipart file upload to AWS S3
+  security:
+    - bearerAuth: [] 
+  requestBody:
+    description: Describes a file for multipart upload completion
+    content:
+      application/json:
+        schema:
+          $ref: "../../schemas/apis/client/file-content-items/multipart-complete/Request.yaml"
+  responses:
+    200:
+      description: Success
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error

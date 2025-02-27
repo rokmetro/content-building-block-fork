@@ -7,3 +7,5 @@ FileContentItemRef:
   $ref: "./application/FileContentItemRef.yaml"
 ImageSpec:
   $ref: "./application/ImageSpec.yaml"
+MultipartFileUpload:
+  $ref: "./application/MultipartFileUpload.yaml"

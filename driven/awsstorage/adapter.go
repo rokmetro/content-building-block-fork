@@ -29,31 +29,55 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/google/uuid"
+	"github.com/rokwire/logging-library-go/v2/errors"
+	"github.com/rokwire/logging-library-go/v2/logs"
+	"github.com/rokwire/logging-library-go/v2/logutils"
 )
 
 const (
-	defaultUploadPresignExpirationMinutes   int = 5
-	defaultDownloadPresignExpirationMinutes int = 60 * 24
+	defaultUploadPresignExpirationMinutes          int = 5
+	defaultMultipartUploadPresignExpirationMinutes int = 15
+	defaultDownloadPresignExpirationMinutes        int = 60 * 24
+
+	mib         int = 1024 * 1024
+	gib         int = 1024 * mib
+	tib         int = 1024 * gib
+	maxFileSize int = 5 * tib
+	minPartSize int = 5 * mib
+	maxPartSize int = 5 * gib
+	maxParts    int = 10000
 )
 
 // Adapter implements the Storage interface
 type Adapter struct {
 	config *model.AWSConfig
 
-	uploadPresignExpirationMinutes   int
-	downloadPresignExpirationMinutes int
+	uploadPresignExpirationMinutes          int
+	multipartUploadPresignExpirationMinutes int
+	downloadPresignExpirationMinutes        int
+
+	logger *logs.Logger
 }
 
 // NewAWSStorageAdapter creates a new storage adapter instance
-func NewAWSStorageAdapter(config *model.AWSConfig, uploadPresignExpirationMinutes int, downloadPresignExpirationMinutes int) *Adapter {
+func NewAWSStorageAdapter(config *model.AWSConfig, uploadPresignExpirationMinutes int, multipartUploadPresignExpirationMinutes int, downloadPresignExpirationMinutes int, logger *logs.Logger) *Adapter {
 	//return &Adapter{S3Bucket: S3Bucket, S3Region: S3Region, AWSAccessKeyID: AWSAccessKeyID, AWSSecretAccessKey: AWSSecretAccessKey}
 	if uploadPresignExpirationMinutes == 0 {
 		uploadPresignExpirationMinutes = defaultUploadPresignExpirationMinutes
 	}
+	if multipartUploadPresignExpirationMinutes == 0 {
+		multipartUploadPresignExpirationMinutes = defaultMultipartUploadPresignExpirationMinutes
+	}
 	if downloadPresignExpirationMinutes == 0 {
 		downloadPresignExpirationMinutes = defaultDownloadPresignExpirationMinutes
 	}
-	return &Adapter{config: config, uploadPresignExpirationMinutes: uploadPresignExpirationMinutes, downloadPresignExpirationMinutes: downloadPresignExpirationMinutes}
+	return &Adapter{
+		config:                                  config,
+		uploadPresignExpirationMinutes:          uploadPresignExpirationMinutes,
+		multipartUploadPresignExpirationMinutes: multipartUploadPresignExpirationMinutes,
+		downloadPresignExpirationMinutes:        downloadPresignExpirationMinutes,
+		logger:                                  logger,
+	}
 }
 
 // LoadImage loads image at specific path
@@ -280,6 +304,130 @@ func (a *Adapter) GetPresignedURLsForUpload(fileKeys, paths []string) ([]model.F
 		refs[i] = model.FileContentItemRef{Key: fileKeys[i], URL: url}
 	}
 	return refs, nil
+}
+
+// GetPresignedURLsForMultipartUpload creates a multipart upload and generates a list of signed URLs for the client to use to upload file parts
+func (a *Adapter) GetPresignedURLsForMultipartUpload(fileKey string, path string, fileSize int) (*model.FileContentItemMultipartUpload, error) {
+	if fileSize > maxFileSize {
+		return nil, errors.ErrorData(logutils.StatusInvalid, "file size", &logutils.FieldArgs{"size": fileSize, "max": maxFileSize})
+	}
+
+	//TODO: evaluate parts calculation for performance, usability
+	partSize := minPartSize
+	if fileSize > tib {
+		// 1 TiB (256) - 5 TiB (1280)
+		partSize = 4 * gib
+	} else if fileSize > tib/2 {
+		// 512 GiB (512) - 1 TiB (1024)
+		partSize = 1 * gib
+	} else if fileSize > 256*gib {
+		// 256 GiB (128) - 512 GiB (1024)
+		partSize = 512 * mib
+	} else if fileSize > 64*gib {
+		// 64 GiB (256) - 256 GiB (1024)
+		partSize = 256 * mib
+	} else if fileSize > 8*gib {
+		// 8 GiB (128) - 64 GiB (1024)
+		partSize = 64 * mib
+	} else if fileSize > gib {
+		// 1 GiB (32) - 8 GiB (256)
+		partSize = 32 * mib
+	} else if fileSize > 512*mib {
+		// 512 MiB (32) - 1 GiB (64)
+		partSize = 16 * mib
+	} else if fileSize > minPartSize {
+		// 5 MiB (1) - 512 MiB (64)
+		partSize = 8 * mib
+	}
+
+	parts := fileSize / partSize
+	if fileSize%partSize > 0 {
+		parts++
+	}
+
+	s, err := a.createS3Session(a.config.S3BucketAccelerate)
+	if err != nil {
+		log.Printf("Could not create S3 session")
+		return nil, err
+	}
+
+	result, err := s3.New(s).CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+		Bucket: aws.String(a.config.S3Bucket),
+		Key:    aws.String(path),
+	})
+	if err != nil {
+		return nil, errors.WrapErrorAction(logutils.ActionCreate, "S3 multipart upload", &logutils.FieldArgs{"bucket": a.config.S3Bucket, "key": path}, err)
+	}
+
+	uploadID := "nil"
+	if result.UploadId != nil {
+		uploadID = *result.UploadId
+	}
+	signedURLs := make([]string, parts)
+	for i := 0; i < parts; i++ {
+		partReq, _ := s3.New(s).UploadPartRequest(&s3.UploadPartInput{
+			Bucket:     aws.String(a.config.S3Bucket),
+			Key:        aws.String(path),
+			PartNumber: aws.Int64(int64(i)),
+			UploadId:   result.UploadId,
+		})
+
+		url, err := partReq.Presign(time.Duration(a.multipartUploadPresignExpirationMinutes) * time.Minute)
+		if err != nil {
+			a.logger.Warnf("error signing S3 upload part request for bucket %s, key %s, part number %d, upload_id %s: %s", a.config.S3Bucket, path, i, uploadID, err.Error())
+			err = a.AbortMultipartUpload(path, uploadID, s)
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, errors.WrapErrorAction("signing", "S3 upload part request", &logutils.FieldArgs{"bucket": a.config.S3Bucket, "key": path, "part": i, "upload_id": uploadID}, err)
+		}
+		signedURLs[i] = url
+	}
+
+	upload := model.FileContentItemMultipartUpload{Key: fileKey, URLs: signedURLs, UploadID: uploadID}
+	return &upload, nil
+}
+
+// CompleteMultipartUpload completes a multipart upload
+func (a *Adapter) CompleteMultipartUpload(path string, uploadID string) error {
+	s, err := a.createS3Session(a.config.S3BucketAccelerate)
+	if err != nil {
+		log.Printf("Could not create S3 session")
+		return err
+	}
+
+	_, err = s3.New(s).CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(a.config.S3Bucket),
+		Key:      aws.String(path),
+		UploadId: aws.String(uploadID),
+	})
+	if err != nil {
+		return errors.WrapErrorAction("aborting", "S3 multipart upload", &logutils.FieldArgs{"bucket": a.config.S3Bucket, "key": path, "uploadID": uploadID}, err)
+	}
+	return nil
+}
+
+// AbortMultipartUpload aborts a multipart upload
+func (a *Adapter) AbortMultipartUpload(path string, uploadID string, s *session.Session) error {
+	var err error
+	if s == nil {
+		s, err = a.createS3Session(a.config.S3BucketAccelerate)
+		if err != nil {
+			log.Printf("Could not create S3 session")
+			return err
+		}
+	}
+
+	_, err = s3.New(s).AbortMultipartUpload(&s3.AbortMultipartUploadInput{
+		Bucket:   aws.String(a.config.S3Bucket),
+		Key:      aws.String(path),
+		UploadId: aws.String(uploadID),
+	})
+	if err != nil {
+		return errors.WrapErrorAction("aborting", "S3 multipart upload", &logutils.FieldArgs{"bucket": a.config.S3Bucket, "key": path, "uploadID": uploadID}, err)
+	}
+	return nil
 }
 
 // DownloadFile loads a file at a specific path

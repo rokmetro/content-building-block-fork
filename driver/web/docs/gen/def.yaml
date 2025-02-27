@@ -2940,6 +2940,90 @@ paths:
           description: Unauthorized
         '500':
           description: Internal error
+  /files/upload/multipart/initiate:
+    post:
+      tags:
+        - Client
+      summary: Client API that gets presigned URLs for multipart file upload to AWS S3
+      description: |
+        Gets presigned URLs for multipart file upload to AWS S3
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Describes a file for multipart upload
+        content:
+          application/json:
+            schema:
+              required:
+                - fileName
+                - sizeInBytes
+                - category
+              type: object
+              properties:
+                fileName:
+                  type: string
+                sizeInBytes:
+                  type: integer
+                category:
+                  type: string
+                entityID:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MultipartFileUpload'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal error
+  /files/upload/multipart/complete:
+    post:
+      tags:
+        - Client
+      summary: Client API that completes a multipart file upload to AWS S3
+      description: |
+        Completes a multipart file upload to AWS S3
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Describes a file for multipart upload completion
+        content:
+          application/json:
+            schema:
+              required:
+                - uploadID
+                - fileKey
+                - category
+              type: object
+              properties:
+                uploadID:
+                  type: string
+                fileKey:
+                  type: string
+                category:
+                  type: string
+                entityID:
+                  type: string
+                  nullable: true
+                abort:
+                  type: boolean
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal error
   /files/download:
     get:
       tags:
@@ -3161,3 +3245,18 @@ components:
           type: integer
         quality:
           type: integer
+    MultipartFileUpload:
+      required:
+        - key
+        - urls
+        - upload_id
+      type: object
+      properties:
+        key:
+          type: string
+        urls:
+          type: array
+          items:
+            type: string
+        upload_id:
+          type: string

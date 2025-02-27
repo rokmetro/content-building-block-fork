@@ -113,6 +113,10 @@ paths:
     $ref: "./resources/client/file-content-items.yaml"
   /files/upload:
     $ref: "./resources/client/file-content-upload.yaml"
+  /files/upload/multipart/initiate:
+    $ref: "./resources/client/file-content-multipart-upload-initiate.yaml"
+  /files/upload/multipart/complete:
+    $ref: "./resources/client/file-content-multipart-upload-complete.yaml"
   /files/download:
     $ref: "./resources/client/file-content-download.yaml"
 

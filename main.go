@@ -116,12 +116,17 @@ func main() {
 	if err != nil {
 		logger.Warnf("error parsing S3 upload presign expiration minutes: %s - applying default", err.Error())
 	}
+	multipartUploadPresignExpirationMinutesVal := envLoader.GetAndLogEnvVar(envPrefix+"S3_MULTIPART_UPLOAD_PRESIGN_EXPIRATION_MINUTES", false, false)
+	multipartUploadPresignExpirationMinutes, err := strconv.Atoi(multipartUploadPresignExpirationMinutesVal)
+	if err != nil {
+		logger.Warnf("error parsing S3 multipart upload presign expiration minutes: %s - applying default", err.Error())
+	}
 	downloadPresignExpirationMinutesVal := envLoader.GetAndLogEnvVar(envPrefix+"S3_DOWNLOAD_PRESIGN_EXPIRATION_MINUTES", false, false)
 	downloadPresignExpirationMinutes, err := strconv.Atoi(downloadPresignExpirationMinutesVal)
 	if err != nil {
 		logger.Warnf("error parsing S3 download presign expiration minutes: %s - applying default", err.Error())
 	}
-	awsAdapter := awsstorage.NewAWSStorageAdapter(awsConfig, uploadPresignExpirationMinutes, downloadPresignExpirationMinutes)
+	awsAdapter := awsstorage.NewAWSStorageAdapter(awsConfig, uploadPresignExpirationMinutes, multipartUploadPresignExpirationMinutes, downloadPresignExpirationMinutes, logger)
 
 	defaultCacheExpirationSeconds := envLoader.GetAndLogEnvVar(envPrefix+"DEFAULT_CACHE_EXPIRATION_SECONDS", false, false)
 	cacheAdapter := cacheadapter.NewCacheAdapter(defaultCacheExpirationSeconds)

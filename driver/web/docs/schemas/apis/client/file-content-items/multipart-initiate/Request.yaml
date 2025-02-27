@@ -1,0 +1,16 @@
+required:
+  - fileName
+  - sizeInBytes
+  - category
+type: object
+properties:
+  fileName:
+    type: string
+  sizeInBytes:
+    type: integer
+  category:
+    type: string
+  entityID:
+    type: string
+    nullable: true
+      

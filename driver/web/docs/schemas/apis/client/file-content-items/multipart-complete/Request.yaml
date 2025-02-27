@@ -1,0 +1,18 @@
+required:
+  - uploadID
+  - fileKey
+  - category
+type: object
+properties:
+  uploadID:
+    type: string
+  fileKey:
+    type: string
+  category:
+    type: string
+  entityID:
+    type: string
+    nullable: true
+  abort:
+    type: boolean
+      

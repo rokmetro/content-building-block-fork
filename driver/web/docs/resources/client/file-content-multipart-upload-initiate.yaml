@@ -1,0 +1,29 @@
+post:
+  tags:
+    - Client
+  summary: Client API that gets presigned URLs for multipart file upload to AWS S3
+  description: |
+    Gets presigned URLs for multipart file upload to AWS S3
+  security:
+    - bearerAuth: [] 
+  requestBody:
+    description: Describes a file for multipart upload
+    content:
+      application/json:
+        schema:
+          $ref: "../../schemas/apis/client/file-content-items/multipart-initiate/Request.yaml"
+  responses:
+    200:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "../../schemas/application/MultipartFileUpload.yaml"
+    400:
+      description: Bad request
+    401:
+      description: Unauthorized
+    500:
+      description: Internal error

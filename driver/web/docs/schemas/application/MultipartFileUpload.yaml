@@ -1,0 +1,14 @@
+required:
+  - key
+  - urls
+  - upload_id
+type: object
+properties:
+  key:
+    type: string
+  urls:
+    type: array
+    items:
+      type: string
+  upload_id:
+    type: string

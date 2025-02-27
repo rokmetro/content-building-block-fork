@@ -881,6 +881,63 @@ func (h ApisHandler) GetFileContentUploadURLs(claims *tokenauth.Claims, w http.R
 	w.Write(data)
 }
 
+// InitiateMultipartUpload initiates a multipart file upload to cloud storage
+func (h ApisHandler) InitiateMultipartUpload(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
+	var body multipartInitiateRequestBody
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		log.Println("Error decoding request body")
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	uploadData, err := h.app.Services.InitiateMultipartFileUpload(claims, body.fileName, body.sizeInBytes, body.entityID, body.category)
+	if err != nil {
+		log.Printf("Error getting initiating multipart file upload: %s\n", err)
+		http.Error(w, "Error getting initiating multipart file upload", http.StatusInternalServerError)
+		return
+	}
+
+	data, err := json.Marshal(uploadData)
+	if err != nil {
+		log.Println("Error on marshal of multipart file upload data")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+type multipartInitiateRequestBody struct {
+	fileName    string `json:"fileName"`
+	sizeInBytes int    `json:"sizeInBytes"`
+	category    string `json:"category"`
+	entityID    string `json:"entityID"`
+} // @name multipartInitiateRequestBody
+
+// CompleteMultipartUpload completes a multipart file upload in cloud storage
+func (h ApisHandler) CompleteMultipartUpload(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
+	var body getContentItemsRequestBody
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		log.Println("Error decoding request body")
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	//TODO: finish implementation
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Success"))
+}
+
+type multipartCompleteRequestBody struct {
+	IDs        []string `json:"ids,omitempty"`
+	Categories []string `json:"categories,omitempty"`
+} // @name multipartCompleteRequestBody
+
 // GetFileContentDownloadURLs Get URLs to download files from S3
 // @Description Get URLs to download files from S3
 // @Tags Client
