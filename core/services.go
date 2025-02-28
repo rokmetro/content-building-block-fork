@@ -585,13 +585,7 @@ func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, fileNa
 	paths := make([]string, len(fileNames))
 	fileKeys := make([]string, len(fileNames))
 	for i, name := range fileNames {
-		fileKeys[i] = fmt.Sprintf("%s_%s", uuid.NewString(), name)
-
-		paths[i] = claims.OrgID + "/" + claims.AppID + "/" + category
-		if entityID != "" {
-			paths[i] += "/" + entityID
-		}
-		paths[i] += "/" + fileKeys[i]
+		fileKeys[i], paths[i] = constructFilePath(claims, name, "", entityID, category)
 	}
 
 	fileRefs, err := s.app.awsAdapter.GetPresignedURLsForUpload(fileKeys, paths)
@@ -603,13 +597,7 @@ func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, fileNa
 }
 
 func (s *servicesImpl) InitiateMultipartFileUpload(claims *tokenauth.Claims, fileName string, fileSize int, entityID string, category string) (*model.FileContentItemMultipartUpload, error) {
-	fileKey := fmt.Sprintf("%s_%s", uuid.NewString(), fileName)
-	path := claims.OrgID + "/" + claims.AppID + "/" + category
-	if entityID != "" {
-		path += "/" + entityID
-	}
-	path += "/" + fileKey
-
+	fileKey, path := constructFilePath(claims, fileName, "", entityID, category)
 	uploadData, err := s.app.awsAdapter.GetPresignedURLsForMultipartUpload(fileKey, path, fileSize)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get signed urls for multipart file upload: %s", err.Error())
@@ -618,19 +606,19 @@ func (s *servicesImpl) InitiateMultipartFileUpload(claims *tokenauth.Claims, fil
 	return uploadData, nil
 }
 
-func (s *servicesImpl) CompleteMultipartFileUpload(claims *tokenauth.Claims, uploadID string, fileKey string, entityID string, category string) error {
-	//TODO: implement
-	return fmt.Errorf("unimplemented")
+func (s *servicesImpl) CompleteMultipartFileUpload(claims *tokenauth.Claims, uploadID string, fileKey string, entityID string, category string, abort bool) error {
+	_, path := constructFilePath(claims, "", fileKey, entityID, category)
+
+	if abort {
+		return s.app.awsAdapter.AbortMultipartUpload(path, uploadID, nil)
+	}
+	return s.app.awsAdapter.CompleteMultipartUpload(path, uploadID)
 }
 
 func (s *servicesImpl) GetFileContentDownloadURLs(claims *tokenauth.Claims, fileKeys []string, entityID string, category string) ([]model.FileContentItemRef, error) {
 	paths := make([]string, len(fileKeys))
 	for i, key := range fileKeys {
-		paths[i] = claims.OrgID + "/" + claims.AppID + "/" + category
-		if entityID != "" {
-			paths[i] += "/" + entityID
-		}
-		paths[i] += "/" + key
+		_, paths[i] = constructFilePath(claims, "", key, entityID, category)
 	}
 
 	fileRefs, err := s.app.awsAdapter.GetPresignedURLsForDownload(fileKeys, paths)
@@ -670,6 +658,19 @@ func checkPermissions(itemPermissions []string, claimsPermissions string) bool {
 	}
 
 	return false
+}
+
+func constructFilePath(claims *tokenauth.Claims, name string, key string, entityID string, category string) (string, string) {
+	fileKey := key
+	if fileKey == "" {
+		fileKey = fmt.Sprintf("%s_%s", uuid.NewString(), name)
+	}
+	path := claims.OrgID + "/" + claims.AppID + "/" + category
+	if entityID != "" {
+		path += "/" + entityID
+	}
+	path += "/" + fileKey
+	return fileKey, path
 }
 
 type servicesImpl struct {

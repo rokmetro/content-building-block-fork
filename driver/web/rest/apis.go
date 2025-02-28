@@ -882,19 +882,43 @@ func (h ApisHandler) GetFileContentUploadURLs(claims *tokenauth.Claims, w http.R
 }
 
 // InitiateMultipartUpload initiates a multipart file upload to cloud storage
+// @Description Initiates a multipart file upload to cloud storage
+// @Tags Client
+// @ID InitiateMultipartUpload
+// @Accept json
+// @Produce json
+// @Success 200 {object} model.FileContentItemMultipartUpload
+// @Security UserAuth
+// @Router /files/upload/multipart/initiate [post]
 func (h ApisHandler) InitiateMultipartUpload(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
 	var body multipartInitiateRequestBody
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-		log.Println("Error decoding request body")
+		log.Println("Error decoding initiate multipart upload request body")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
-	uploadData, err := h.app.Services.InitiateMultipartFileUpload(claims, body.fileName, body.sizeInBytes, body.entityID, body.category)
+	if body.FileName == "" {
+		log.Println("Missing complete multipart upload request field 'fileName'")
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	if body.SizeInBytes == 0 {
+		log.Println("Missing complete multipart upload request field 'sizeInBytes'")
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	if body.Category == "" {
+		log.Println("Missing complete multipart upload request field 'category'")
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	uploadData, err := h.app.Services.InitiateMultipartFileUpload(claims, body.FileName, body.SizeInBytes, body.EntityID, body.Category)
 	if err != nil {
-		log.Printf("Error getting initiating multipart file upload: %s\n", err)
-		http.Error(w, "Error getting initiating multipart file upload", http.StatusInternalServerError)
+		log.Printf("Error initiating multipart file upload: %s\n", err)
+		http.Error(w, "Error initiating multipart file upload", http.StatusInternalServerError)
 		return
 	}
 
@@ -911,31 +935,62 @@ func (h ApisHandler) InitiateMultipartUpload(claims *tokenauth.Claims, w http.Re
 }
 
 type multipartInitiateRequestBody struct {
-	fileName    string `json:"fileName"`
-	sizeInBytes int    `json:"sizeInBytes"`
-	category    string `json:"category"`
-	entityID    string `json:"entityID"`
+	FileName    string `json:"fileName"`
+	SizeInBytes int    `json:"sizeInBytes"`
+	Category    string `json:"category"`
+	EntityID    string `json:"entityID"`
 } // @name multipartInitiateRequestBody
 
 // CompleteMultipartUpload completes a multipart file upload in cloud storage
+// @Description Completes (or aborts) a multipart file upload in cloud storage
+// @Tags Client
+// @ID CompleteMultipartUpload
+// @Accept json
+// @Success 200
+// @Security UserAuth
+// @Router /files/upload/multipart/complete [post]
 func (h ApisHandler) CompleteMultipartUpload(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
-	var body getContentItemsRequestBody
+	var body multipartCompleteRequestBody
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-		log.Println("Error decoding request body")
+		log.Println("Error decoding complete multipart upload request body")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
-	//TODO: finish implementation
+	if body.UploadID == "" {
+		log.Println("Missing complete multipart upload request field 'uploadID'")
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	if body.FileKey == "" {
+		log.Println("Missing complete multipart upload request field 'fileKey'")
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	if body.Category == "" {
+		log.Println("Missing complete multipart upload request field 'category'")
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	err = h.app.Services.CompleteMultipartFileUpload(claims, body.UploadID, body.FileKey, body.EntityID, body.Category, body.Abort)
+	if err != nil {
+		log.Printf("Error completing multipart file upload: %s\n", err)
+		http.Error(w, "Error completing multipart file upload", http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Success"))
 }
 
 type multipartCompleteRequestBody struct {
-	IDs        []string `json:"ids,omitempty"`
-	Categories []string `json:"categories,omitempty"`
+	UploadID string `json:"uploadID"`
+	FileKey  string `json:"fileKey"`
+	Category string `json:"category"`
+	EntityID string `json:"entityID"`
+	Abort    bool   `json:"abort"`
 } // @name multipartCompleteRequestBody
 
 // GetFileContentDownloadURLs Get URLs to download files from S3

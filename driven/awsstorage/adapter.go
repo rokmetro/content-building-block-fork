@@ -403,7 +403,7 @@ func (a *Adapter) CompleteMultipartUpload(path string, uploadID string) error {
 		UploadId: aws.String(uploadID),
 	})
 	if err != nil {
-		return errors.WrapErrorAction("aborting", "S3 multipart upload", &logutils.FieldArgs{"bucket": a.config.S3Bucket, "key": path, "uploadID": uploadID}, err)
+		return errors.WrapErrorAction("completing", "S3 multipart upload", &logutils.FieldArgs{"bucket": a.config.S3Bucket, "key": path, "uploadID": uploadID}, err)
 	}
 	return nil
 }
