@@ -953,13 +953,18 @@ func (h ApisHandler) CompleteMultipartUpload(claims *tokenauth.Claims, w http.Re
 	var body multipartCompleteRequestBody
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-		log.Println("Error decoding complete multipart upload request body")
+		log.Printf("Error decoding complete multipart upload request body: %v", err)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	if body.UploadID == "" {
 		log.Println("Missing complete multipart upload request field 'uploadID'")
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	if !body.Abort && len(body.ETags) == 0 {
+		log.Println("Missing complete multipart upload request field 'eTags' while not aborting")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
@@ -974,7 +979,7 @@ func (h ApisHandler) CompleteMultipartUpload(claims *tokenauth.Claims, w http.Re
 		return
 	}
 
-	err = h.app.Services.CompleteMultipartFileUpload(claims, body.UploadID, body.FileKey, body.EntityID, body.Category, body.Abort)
+	err = h.app.Services.CompleteMultipartFileUpload(claims, body.UploadID, body.ETags, body.FileKey, body.EntityID, body.Category, body.Abort)
 	if err != nil {
 		log.Printf("Error completing multipart file upload: %s\n", err)
 		http.Error(w, "Error completing multipart file upload", http.StatusInternalServerError)
@@ -986,11 +991,12 @@ func (h ApisHandler) CompleteMultipartUpload(claims *tokenauth.Claims, w http.Re
 }
 
 type multipartCompleteRequestBody struct {
-	UploadID string `json:"uploadID"`
-	FileKey  string `json:"fileKey"`
-	Category string `json:"category"`
-	EntityID string `json:"entityID"`
-	Abort    bool   `json:"abort"`
+	UploadID string   `json:"uploadID"`
+	ETags    []string `json:"eTags"`
+	FileKey  string   `json:"fileKey"`
+	Category string   `json:"category"`
+	EntityID string   `json:"entityID"`
+	Abort    bool     `json:"abort"`
 } // @name multipartCompleteRequestBody
 
 // GetFileContentDownloadURLs Get URLs to download files from S3

@@ -606,13 +606,13 @@ func (s *servicesImpl) InitiateMultipartFileUpload(claims *tokenauth.Claims, fil
 	return uploadData, nil
 }
 
-func (s *servicesImpl) CompleteMultipartFileUpload(claims *tokenauth.Claims, uploadID string, fileKey string, entityID string, category string, abort bool) error {
+func (s *servicesImpl) CompleteMultipartFileUpload(claims *tokenauth.Claims, uploadID string, eTags []string, fileKey string, entityID string, category string, abort bool) error {
 	_, path := constructFilePath(claims, "", fileKey, entityID, category)
 
 	if abort {
 		return s.app.awsAdapter.AbortMultipartUpload(path, uploadID, nil)
 	}
-	return s.app.awsAdapter.CompleteMultipartUpload(path, uploadID)
+	return s.app.awsAdapter.CompleteMultipartUpload(path, uploadID, eTags)
 }
 
 func (s *servicesImpl) GetFileContentDownloadURLs(claims *tokenauth.Claims, fileKeys []string, entityID string, category string) ([]model.FileContentItemRef, error) {

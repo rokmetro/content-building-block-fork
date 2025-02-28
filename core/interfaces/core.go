@@ -69,7 +69,7 @@ type Services interface {
 	GetFileContentItem(claims *tokenauth.Claims, fileName string, category string) (io.ReadCloser, error)
 	GetFileContentUploadURLs(claims *tokenauth.Claims, fileNames []string, entityID string, category string) ([]model.FileContentItemRef, error)
 	InitiateMultipartFileUpload(claims *tokenauth.Claims, fileName string, fileSize int, entityID string, category string) (*model.FileContentItemMultipartUpload, error)
-	CompleteMultipartFileUpload(claims *tokenauth.Claims, uploadID string, fileKey string, entityID string, category string, abort bool) error
+	CompleteMultipartFileUpload(claims *tokenauth.Claims, uploadID string, eTags []string, fileKey string, entityID string, category string, abort bool) error
 	GetFileContentDownloadURLs(claims *tokenauth.Claims, fileKeys []string, entityID string, category string) ([]model.FileContentItemRef, error)
 	DeleteFileContentItem(claims *tokenauth.Claims, fileName string, category string) error
 }

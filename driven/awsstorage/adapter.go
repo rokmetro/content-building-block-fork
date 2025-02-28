@@ -311,14 +311,12 @@ func (a *Adapter) GetPresignedURLsForMultipartUpload(fileKey string, path string
 	if fileSize > maxFileSize {
 		return nil, errors.ErrorData(logutils.StatusInvalid, "file size", &logutils.FieldArgs{"size": fileSize, "max": maxFileSize})
 	}
+	//TODO: add check for minimum file size (AWS recommends using PutObject for files <100MB in size)
 
-	//TODO: evaluate parts calculation for performance, usability
+	//TODO: evaluate parts calculation for performance, usability (consider client application memory capacity)
 	partSize := minPartSize
-	if fileSize > tib {
-		// 1 TiB (256) - 5 TiB (1280)
-		partSize = 4 * gib
-	} else if fileSize > tib/2 {
-		// 512 GiB (512) - 1 TiB (1024)
+	if fileSize > tib/2 {
+		// 512 GiB (512) - 5 TiB (5120)
 		partSize = 1 * gib
 	} else if fileSize > 256*gib {
 		// 256 GiB (128) - 512 GiB (1024)
@@ -364,23 +362,23 @@ func (a *Adapter) GetPresignedURLsForMultipartUpload(fileKey string, path string
 		uploadID = *result.UploadId
 	}
 	signedURLs := make([]string, parts)
-	for i := 0; i < parts; i++ {
+	for i := range parts {
 		partReq, _ := s3.New(s).UploadPartRequest(&s3.UploadPartInput{
 			Bucket:     aws.String(a.config.S3Bucket),
 			Key:        aws.String(path),
-			PartNumber: aws.Int64(int64(i)),
+			PartNumber: aws.Int64(int64(i + 1)),
 			UploadId:   result.UploadId,
 		})
 
 		url, err := partReq.Presign(time.Duration(a.multipartUploadPresignExpirationMinutes) * time.Minute)
 		if err != nil {
-			a.logger.Warnf("error signing S3 upload part request for bucket %s, key %s, part number %d, upload_id %s: %s", a.config.S3Bucket, path, i, uploadID, err.Error())
+			a.logger.Warnf("error signing S3 upload part request for bucket %s, key %s, part number %d, upload_id %s: %s", a.config.S3Bucket, path, i+1, uploadID, err.Error())
 			err = a.AbortMultipartUpload(path, uploadID, s)
 			if err != nil {
 				return nil, err
 			}
 
-			return nil, errors.WrapErrorAction("signing", "S3 upload part request", &logutils.FieldArgs{"bucket": a.config.S3Bucket, "key": path, "part": i, "upload_id": uploadID}, err)
+			return nil, errors.WrapErrorAction("signing", "S3 upload part request", &logutils.FieldArgs{"bucket": a.config.S3Bucket, "key": path, "part": i + 1, "upload_id": uploadID}, err)
 		}
 		signedURLs[i] = url
 	}
@@ -390,17 +388,25 @@ func (a *Adapter) GetPresignedURLsForMultipartUpload(fileKey string, path string
 }
 
 // CompleteMultipartUpload completes a multipart upload
-func (a *Adapter) CompleteMultipartUpload(path string, uploadID string) error {
+func (a *Adapter) CompleteMultipartUpload(path string, uploadID string, eTags []string) error {
 	s, err := a.createS3Session(a.config.S3BucketAccelerate)
 	if err != nil {
 		log.Printf("Could not create S3 session")
 		return err
 	}
 
+	parts := make([]*s3.CompletedPart, len(eTags))
+	for i := range len(eTags) {
+		parts[i] = &s3.CompletedPart{
+			PartNumber: aws.Int64(int64(i + 1)),
+			ETag:       aws.String(eTags[i]),
+		}
+	}
 	_, err = s3.New(s).CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
-		Bucket:   aws.String(a.config.S3Bucket),
-		Key:      aws.String(path),
-		UploadId: aws.String(uploadID),
+		Bucket:          aws.String(a.config.S3Bucket),
+		Key:             aws.String(path),
+		UploadId:        aws.String(uploadID),
+		MultipartUpload: &s3.CompletedMultipartUpload{Parts: parts},
 	})
 	if err != nil {
 		return errors.WrapErrorAction("completing", "S3 multipart upload", &logutils.FieldArgs{"bucket": a.config.S3Bucket, "key": path, "uploadID": uploadID}, err)

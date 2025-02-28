@@ -1,11 +1,16 @@
 required:
   - uploadID
+  - eTags
   - fileKey
   - category
 type: object
 properties:
   uploadID:
     type: string
+  eTags:
+    type: array
+    items:
+      type: string
   fileKey:
     type: string
   category:
