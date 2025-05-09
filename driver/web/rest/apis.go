@@ -862,7 +862,16 @@ func (h ApisHandler) GetFileContentUploadURLs(claims *tokenauth.Claims, w http.R
 		return
 	}
 
-	fileRefs, err := h.app.Services.GetFileContentUploadURLs(claims, fileNames, entityID, category)
+	handleDuplicateFileNames := true
+	handleDuplicateFileNamesStr := r.URL.Query().Get("handle-duplicate-filenames")
+	if handleDuplicateFileNamesStr != "" {
+		handleDuplicateFileNamesVal, err := strconv.ParseBool(handleDuplicateFileNamesStr)
+		if err == nil {
+			handleDuplicateFileNames = handleDuplicateFileNamesVal
+		}
+	}
+
+	fileRefs, err := h.app.Services.GetFileContentUploadURLs(claims, fileNames, entityID, category, handleDuplicateFileNames)
 	if err != nil {
 		log.Printf("Error getting file upload references: %s\n", err)
 		http.Error(w, "Error getting file upload references", http.StatusInternalServerError)
@@ -915,7 +924,16 @@ func (h ApisHandler) GetFileContentDownloadURLs(claims *tokenauth.Claims, w http
 		return
 	}
 
-	fileRefs, err := h.app.Services.GetFileContentDownloadURLs(claims, fileKeys, entityID, category)
+	addAppOrgIDToPath := true
+	addAppOrgIDToPathStr := r.URL.Query().Get("add-path-apporg-id")
+	if addAppOrgIDToPathStr != "" {
+		addAppOrgIDToPathVal, err := strconv.ParseBool(addAppOrgIDToPathStr)
+		if err == nil {
+			addAppOrgIDToPath = addAppOrgIDToPathVal
+		}
+	}
+
+	fileRefs, err := h.app.Services.GetFileContentDownloadURLs(claims, fileKeys, entityID, category, addAppOrgIDToPath)
 	if err != nil {
 		log.Printf("Error getting file download references: %s\n", err)
 		http.Error(w, "Error getting file download references", http.StatusInternalServerError)

@@ -581,11 +581,15 @@ func (s *servicesImpl) GetFileContentItem(claims *tokenauth.Claims, fileName str
 	return fileData, nil
 }
 
-func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, fileNames []string, entityID string, category string) ([]model.FileContentItemRef, error) {
+func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, fileNames []string, entityID string, category string, handleDuplicateFileNames bool) ([]model.FileContentItemRef, error) {
 	paths := make([]string, len(fileNames))
 	fileKeys := make([]string, len(fileNames))
 	for i, name := range fileNames {
-		fileKeys[i] = fmt.Sprintf("%s_%s", uuid.NewString(), name)
+		if handleDuplicateFileNames {
+			fileKeys[i] = fmt.Sprintf("%s_%s", uuid.NewString(), name)
+		} else {
+			fileKeys[i] = name
+		}
 
 		paths[i] = claims.OrgID + "/" + claims.AppID + "/" + category
 		if entityID != "" {
@@ -602,10 +606,13 @@ func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, fileNa
 	return fileRefs, nil
 }
 
-func (s *servicesImpl) GetFileContentDownloadURLs(claims *tokenauth.Claims, fileKeys []string, entityID string, category string) ([]model.FileContentItemRef, error) {
+func (s *servicesImpl) GetFileContentDownloadURLs(claims *tokenauth.Claims, fileKeys []string, entityID string, category string, addAppOrgIDToPath bool) ([]model.FileContentItemRef, error) {
 	paths := make([]string, len(fileKeys))
 	for i, key := range fileKeys {
-		paths[i] = claims.OrgID + "/" + claims.AppID + "/" + category
+		if addAppOrgIDToPath {
+			paths[i] = claims.OrgID + "/" + claims.AppID
+		}
+		paths[i] += "/" + category
 		if entityID != "" {
 			paths[i] += "/" + entityID
 		}

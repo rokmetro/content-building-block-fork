@@ -2925,6 +2925,14 @@ paths:
           explode: false
           schema:
             type: string
+        - name: handle-duplicate-filenames
+          in: query
+          description: whether the service can modify given filenames to handle duplicates
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: Success
@@ -2974,6 +2982,14 @@ paths:
           explode: false
           schema:
             type: string
+        - name: add-path-apporg-id
+          in: query
+          description: whether the service should add the app ID and org ID to the URL
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: Success

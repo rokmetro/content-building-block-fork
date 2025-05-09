@@ -31,6 +31,14 @@ get:
       explode: false
       schema:
         type: string
+    - name: handle-duplicate-filenames
+      in: query
+      description: whether the service can modify given filenames to handle duplicates
+      required: false
+      style: form
+      explode: false
+      schema:
+        type: boolean
   responses:
     200:
       description: Success
