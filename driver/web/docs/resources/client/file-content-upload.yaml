@@ -39,6 +39,22 @@ get:
       explode: false
       schema:
         type: boolean
+    - name: add-path-apporg-id
+      in: query
+      description: whether the service should add the app ID and org ID to the URL
+      required: false
+      style: form
+      explode: false
+      schema:
+        type: boolean
+    - name: public-read
+      in: query
+      description: whether the uploaded file should publicly readable
+      required: false
+      style: form
+      explode: false
+      schema:
+        type: boolean
   responses:
     200:
       description: Success

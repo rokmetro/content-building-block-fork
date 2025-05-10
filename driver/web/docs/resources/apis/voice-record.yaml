@@ -41,7 +41,16 @@ delete:
   description: |
      Delete the user voice record
   security:
-    - bearerAuth: [] 
+    - bearerAuth: []
+  parameters:
+    - name: extension
+      in: query
+      description: voice record extension
+      required: true
+      style: form
+      explode: false
+      schema:
+        type: string
   responses:
     200:
       description: Success

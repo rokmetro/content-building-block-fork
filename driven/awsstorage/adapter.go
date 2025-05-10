@@ -205,14 +205,14 @@ func (a *Adapter) LoadUserVoiceRecord(accountID string) ([]byte, error) {
 }
 
 // DeleteUserVoiceRecord deletes the voice record for the user
-func (a *Adapter) DeleteUserVoiceRecord(accountID string) error {
+func (a *Adapter) DeleteUserVoiceRecord(accountID string, extension string) error {
 	s, err := a.createS3Session(false)
 	if err != nil {
 		log.Printf("Could not create S3 session")
 		return err
 	}
 
-	key := fmt.Sprintf("names-records/%s.m4a", accountID)
+	key := fmt.Sprintf("names-records/%s%s", accountID, extension)
 
 	session := s3.New(s)
 	_, err = session.DeleteObject(&s3.DeleteObjectInput{
@@ -260,11 +260,16 @@ func (a *Adapter) UploadFile(body io.Reader, path string) (*string, error) {
 }
 
 // GetPresignedURLsForUpload gets a set of presigned URLs for file upload directly to S3 by a client application
-func (a *Adapter) GetPresignedURLsForUpload(fileKeys, paths []string) ([]model.FileContentItemRef, error) {
+func (a *Adapter) GetPresignedURLsForUpload(fileKeys, paths []string, publicRead bool) ([]model.FileContentItemRef, error) {
 	s, err := a.createS3Session(a.config.S3BucketAccelerate)
 	if err != nil {
 		log.Printf("Could not create S3 session")
 		return nil, err
+	}
+
+	var acl *string
+	if publicRead {
+		acl = aws.String("public-read")
 	}
 
 	refs := make([]model.FileContentItemRef, len(paths))
@@ -272,6 +277,7 @@ func (a *Adapter) GetPresignedURLsForUpload(fileKeys, paths []string) ([]model.F
 		req, _ := s3.New(s).PutObjectRequest(&s3.PutObjectInput{
 			Bucket: aws.String(a.config.S3Bucket),
 			Key:    aws.String(path),
+			ACL:    acl,
 		})
 		url, err := req.Presign(time.Duration(a.uploadPresignExpirationMinutes) * time.Minute)
 		if err != nil {

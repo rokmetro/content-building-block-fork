@@ -301,8 +301,14 @@ func (h ApisHandler) GetUserVoiceRecord(claims *tokenauth.Claims, w http.Respons
 
 // DeleteVoiceRecord deletes the user voice record
 func (h ApisHandler) DeleteVoiceRecord(claims *tokenauth.Claims, w http.ResponseWriter, r *http.Request) {
+	extension := r.URL.Query().Get("extension")
+	if len(extension) <= 0 {
+		log.Print("Missing extension query param\n")
+		http.Error(w, "missing 'extension' query param", http.StatusBadRequest)
+		return
+	}
 
-	err := h.app.Services.DeleteVoiceRecord(claims.Subject)
+	err := h.app.Services.DeleteVoiceRecord(claims.Subject, extension)
 	if err != nil {
 		if err != nil {
 			log.Printf("error on delete AWS voice audio file: %s", err)
@@ -871,7 +877,25 @@ func (h ApisHandler) GetFileContentUploadURLs(claims *tokenauth.Claims, w http.R
 		}
 	}
 
-	fileRefs, err := h.app.Services.GetFileContentUploadURLs(claims, fileNames, entityID, category, handleDuplicateFileNames)
+	addAppOrgIDToPath := true
+	addAppOrgIDToPathStr := r.URL.Query().Get("add-path-apporg-id")
+	if addAppOrgIDToPathStr != "" {
+		addAppOrgIDToPathVal, err := strconv.ParseBool(addAppOrgIDToPathStr)
+		if err == nil {
+			addAppOrgIDToPath = addAppOrgIDToPathVal
+		}
+	}
+
+	publicRead := true
+	publicReadStr := r.URL.Query().Get("public-read")
+	if publicReadStr != "" {
+		publicReadVal, err := strconv.ParseBool(publicReadStr)
+		if err == nil {
+			publicRead = publicReadVal
+		}
+	}
+
+	fileRefs, err := h.app.Services.GetFileContentUploadURLs(claims, fileNames, entityID, category, addAppOrgIDToPath, handleDuplicateFileNames, publicRead)
 	if err != nil {
 		log.Printf("Error getting file upload references: %s\n", err)
 		http.Error(w, "Error getting file upload references", http.StatusInternalServerError)

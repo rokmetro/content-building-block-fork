@@ -50,7 +50,7 @@ type Services interface {
 
 	UploadVoiceRecord(userID string, bytes []byte) error
 	GetVoiceRecord(userID string) ([]byte, error)
-	DeleteVoiceRecord(userID string) error
+	DeleteVoiceRecord(userID string, extension string) error
 
 	GetTwitterPosts(userID string, twitterQueryParams string, force bool) (map[string]interface{}, error)
 
@@ -67,7 +67,7 @@ type Services interface {
 
 	UploadFileContentItem(file io.Reader, claims *tokenauth.Claims, fileName string, category string) error
 	GetFileContentItem(claims *tokenauth.Claims, fileName string, category string) (io.ReadCloser, error)
-	GetFileContentUploadURLs(claims *tokenauth.Claims, fileNames []string, entityID string, category string, handleDuplicateFileNames bool) ([]model.FileContentItemRef, error)
+	GetFileContentUploadURLs(claims *tokenauth.Claims, fileNames []string, entityID string, category string, addAppOrgIDToPath bool, handleDuplicateFileNames bool, publicRead bool) ([]model.FileContentItemRef, error)
 	GetFileContentDownloadURLs(claims *tokenauth.Claims, fileKeys []string, entityID string, category string, addAppOrgIDToPath bool) ([]model.FileContentItemRef, error)
 	DeleteFileContentItem(claims *tokenauth.Claims, fileName string, category string) error
 }

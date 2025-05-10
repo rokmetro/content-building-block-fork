@@ -383,8 +383,8 @@ func (s *servicesImpl) GetVoiceRecord(userID string) ([]byte, error) {
 	return fileContent, nil
 }
 
-func (s *servicesImpl) DeleteVoiceRecord(userID string) error {
-	err := s.app.awsAdapter.DeleteUserVoiceRecord(userID)
+func (s *servicesImpl) DeleteVoiceRecord(userID string, extension string) error {
+	err := s.app.awsAdapter.DeleteUserVoiceRecord(userID, extension)
 	if err != nil {
 		return err
 	}
@@ -581,7 +581,8 @@ func (s *servicesImpl) GetFileContentItem(claims *tokenauth.Claims, fileName str
 	return fileData, nil
 }
 
-func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, fileNames []string, entityID string, category string, handleDuplicateFileNames bool) ([]model.FileContentItemRef, error) {
+func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, fileNames []string, entityID string, category string,
+	addAppOrgIDToPath bool, handleDuplicateFileNames bool, publicRead bool) ([]model.FileContentItemRef, error) {
 	paths := make([]string, len(fileNames))
 	fileKeys := make([]string, len(fileNames))
 	for i, name := range fileNames {
@@ -591,14 +592,10 @@ func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, fileNa
 			fileKeys[i] = name
 		}
 
-		paths[i] = claims.OrgID + "/" + claims.AppID + "/" + category
-		if entityID != "" {
-			paths[i] += "/" + entityID
-		}
-		paths[i] += "/" + fileKeys[i]
+		paths[i] = s.getFilePath(claims, fileKeys[i], category, entityID, addAppOrgIDToPath)
 	}
 
-	fileRefs, err := s.app.awsAdapter.GetPresignedURLsForUpload(fileKeys, paths)
+	fileRefs, err := s.app.awsAdapter.GetPresignedURLsForUpload(fileKeys, paths, publicRead)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get file upload references: %s", err.Error())
 	}
@@ -609,14 +606,7 @@ func (s *servicesImpl) GetFileContentUploadURLs(claims *tokenauth.Claims, fileNa
 func (s *servicesImpl) GetFileContentDownloadURLs(claims *tokenauth.Claims, fileKeys []string, entityID string, category string, addAppOrgIDToPath bool) ([]model.FileContentItemRef, error) {
 	paths := make([]string, len(fileKeys))
 	for i, key := range fileKeys {
-		if addAppOrgIDToPath {
-			paths[i] = claims.OrgID + "/" + claims.AppID
-		}
-		paths[i] += "/" + category
-		if entityID != "" {
-			paths[i] += "/" + entityID
-		}
-		paths[i] += "/" + key
+		paths[i] = s.getFilePath(claims, key, category, entityID, addAppOrgIDToPath)
 	}
 
 	fileRefs, err := s.app.awsAdapter.GetPresignedURLsForDownload(fileKeys, paths)
@@ -645,6 +635,19 @@ func (s *servicesImpl) DeleteFileContentItem(claims *tokenauth.Claims, fileName 
 	}
 
 	return nil
+}
+
+func (s *servicesImpl) getFilePath(claims *tokenauth.Claims, key string, category string, entityID string, addAppOrgIDToPath bool) string {
+	path := ""
+	if addAppOrgIDToPath {
+		path = claims.OrgID + "/" + claims.AppID
+	}
+	path += "/" + category
+	if entityID != "" {
+		path += "/" + entityID
+	}
+	path += "/" + key
+	return path
 }
 
 func checkPermissions(itemPermissions []string, claimsPermissions string) bool {

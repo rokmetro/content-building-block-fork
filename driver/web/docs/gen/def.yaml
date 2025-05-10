@@ -2355,6 +2355,15 @@ paths:
         Delete the user voice record
       security:
         - bearerAuth: []
+      parameters:
+        - name: extension
+          in: query
+          description: voice record extension
+          required: true
+          style: form
+          explode: false
+          schema:
+            type: string
       responses:
         '200':
           description: Success
@@ -2928,6 +2937,22 @@ paths:
         - name: handle-duplicate-filenames
           in: query
           description: whether the service can modify given filenames to handle duplicates
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: boolean
+        - name: add-path-apporg-id
+          in: query
+          description: whether the service should add the app ID and org ID to the URL
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: boolean
+        - name: public-read
+          in: query
+          description: whether the uploaded file should publicly readable
           required: false
           style: form
           explode: false
