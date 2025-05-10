@@ -27,8 +27,8 @@ COPY --from=builder /content-app/driver/web/authorization_policy.csv /driver/web
 COPY --from=builder /content-app/driver/web/authorization_bbs_permission_policy.csv /driver/web/authorization_bbs_permission_policy.csv
 COPY --from=builder /content-app/driver/web/authorization_tps_permission_policy.csv /driver/web/authorization_tps_permission_policy.csv
 
-COPY --from=builder /content-app/vendor/github.com/rokwire/core-auth-library-go/v3/authorization/authorization_model_scope.conf /content-app/vendor/github.com/rokwire/core-auth-library-go/v3/authorization/authorization_model_scope.conf
-COPY --from=builder /content-app/vendor/github.com/rokwire/core-auth-library-go/v3/authorization/authorization_model_string.conf /content-app/vendor/github.com/rokwire/core-auth-library-go/v3/authorization/authorization_model_string.conf
+COPY --from=builder /content-app/vendor/github.com/rokwire/rokwire-building-block-sdk-go/services/core/auth/authorization/authorization_model_scope.conf /content-app/vendor/github.com/rokwire/rokwire-building-block-sdk-go/services/core/auth/authorization/authorization_model_scope.conf
+COPY --from=builder /content-app/vendor/github.com/rokwire/rokwire-building-block-sdk-go/services/core/auth/authorization/authorization_model_string.conf /content-app/vendor/github.com/rokwire/rokwire-building-block-sdk-go/services/core/auth/authorization/authorization_model_string.conf
 
 COPY --from=builder /etc/passwd /etc/passwd
 

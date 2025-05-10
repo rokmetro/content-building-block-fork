@@ -27,11 +27,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rokwire/core-auth-library-go/v3/authservice"
-	"github.com/rokwire/core-auth-library-go/v3/envloader"
-	"github.com/rokwire/core-auth-library-go/v3/keys"
-	"github.com/rokwire/core-auth-library-go/v3/sigauth"
-	"github.com/rokwire/logging-library-go/v2/logs"
+	"github.com/rokwire/rokwire-building-block-sdk-go/services/core/auth"
+	"github.com/rokwire/rokwire-building-block-sdk-go/services/core/auth/keys"
+	"github.com/rokwire/rokwire-building-block-sdk-go/services/core/auth/sigauth"
+	"github.com/rokwire/rokwire-building-block-sdk-go/utils/envloader"
+	"github.com/rokwire/rokwire-building-block-sdk-go/utils/logging/logs"
 )
 
 var (
@@ -61,19 +61,19 @@ func main() {
 	coreBBHost := envLoader.GetAndLogEnvVar(envPrefix+"CORE_BB_HOST", true, false)
 	contentServiceURL := envLoader.GetAndLogEnvVar(envPrefix+"SERVICE_URL", true, false)
 
-	authService := authservice.AuthService{
+	authService := auth.Service{
 		ServiceID:   serviceID,
 		ServiceHost: contentServiceURL,
 		FirstParty:  true,
 		AuthBaseURL: coreBBHost,
 	}
 
-	serviceRegLoader, err := authservice.NewRemoteServiceRegLoader(&authService, []string{"auth"})
+	serviceRegLoader, err := auth.NewRemoteServiceRegLoader(&authService, []string{"auth"})
 	if err != nil {
 		log.Fatalf("Error initializing remote service registration loader: %v", err)
 	}
 
-	serviceRegManager, err := authservice.NewServiceRegManager(&authService, serviceRegLoader, !strings.HasPrefix(contentServiceURL, "http://localhost"))
+	serviceRegManager, err := auth.NewServiceRegManager(&authService, serviceRegLoader, !strings.HasPrefix(contentServiceURL, "http://localhost"))
 	if err != nil {
 		log.Fatalf("Error initializing service registration manager: %v", err)
 	}
@@ -134,7 +134,7 @@ func main() {
 	mtOrgID := envLoader.GetAndLogEnvVar(envPrefix+"MULTI_TENANCY_ORG_ID", true, true)
 
 	//core adapter
-	var serviceAccountManager *authservice.ServiceAccountManager
+	var serviceAccountManager *auth.ServiceAccountManager
 
 	serviceAccountID := envLoader.GetAndLogEnvVar(envPrefix+"SERVICE_ACCOUNT_ID", false, false)
 	privKeyRaw := envLoader.GetAndLogEnvVar(envPrefix+"PRIV_KEY", true, true)
@@ -150,12 +150,12 @@ func main() {
 			logger.Fatalf("Error initializing signature auth: %v", err)
 		}
 
-		serviceAccountLoader, err := authservice.NewRemoteServiceAccountLoader(&authService, serviceAccountID, signatureAuth)
+		serviceAccountLoader, err := auth.NewRemoteServiceAccountLoader(&authService, serviceAccountID, signatureAuth)
 		if err != nil {
 			logger.Fatalf("Error initializing remote service account loader: %v", err)
 		}
 
-		serviceAccountManager, err = authservice.NewServiceAccountManager(&authService, serviceAccountLoader)
+		serviceAccountManager, err = auth.NewServiceAccountManager(&authService, serviceAccountLoader)
 		if err != nil {
 			logger.Fatalf("Error initializing service account manager: %v", err)
 		}

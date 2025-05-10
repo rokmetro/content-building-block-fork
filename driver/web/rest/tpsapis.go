@@ -22,7 +22,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/rokwire/core-auth-library-go/v3/tokenauth"
+	"github.com/rokwire/rokwire-building-block-sdk-go/services/core/auth/tokenauth"
 )
 
 // TPsApisHandler handles the rest TPs APIs implementation

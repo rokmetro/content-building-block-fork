@@ -9,17 +9,17 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/rokwire/core-auth-library-go/v3/authservice"
+	"github.com/rokwire/rokwire-building-block-sdk-go/services/core/auth"
 )
 
 // Adapter is the adapter for Core BB APIs
 type Adapter struct {
 	coreURL               string
-	serviceAccountManager *authservice.ServiceAccountManager
+	serviceAccountManager *auth.ServiceAccountManager
 }
 
 // NewCoreAdapter creates a new adapter for Core API
-func NewCoreAdapter(coreURL string, serviceAccountManager *authservice.ServiceAccountManager) *Adapter {
+func NewCoreAdapter(coreURL string, serviceAccountManager *auth.ServiceAccountManager) *Adapter {
 	return &Adapter{coreURL: coreURL, serviceAccountManager: serviceAccountManager}
 }
 

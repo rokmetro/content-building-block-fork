@@ -14,7 +14,7 @@ import (
 	"content/core/model"
 	"io"
 
-	"github.com/rokwire/core-auth-library-go/v3/tokenauth"
+	"github.com/rokwire/rokwire-building-block-sdk-go/services/core/auth/tokenauth"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
