@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/golang:1.23-alpine as builder
+FROM public.ecr.aws/docker/library/golang:1.24-alpine as builder
 
 ENV CGO_ENABLED=1
 
@@ -10,7 +10,7 @@ WORKDIR /content-app
 COPY . .
 RUN make
 
-FROM public.ecr.aws/docker/library/alpine:3.17.2
+FROM public.ecr.aws/docker/library/alpine:3.21.3
 
 #we need timezone database
 RUN apk add --no-cache tzdata

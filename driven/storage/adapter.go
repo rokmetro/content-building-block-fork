@@ -162,11 +162,11 @@ func (sa *Adapter) DeleteStudentGuide(appID string, orgID string, id string) err
 		return err
 	}
 	if result == nil {
-		return fmt.Errorf("result is nil for resource item with id " + id)
+		return fmt.Errorf("result is nil for resource item with id %s", id)
 	}
 	deletedCount := result.DeletedCount
 	if deletedCount != 1 {
-		return fmt.Errorf("error occured while deleting a resource item with id " + id)
+		return fmt.Errorf("error occured while deleting a resource item with id %s", id)
 	}
 	return nil
 
@@ -257,11 +257,11 @@ func (sa *Adapter) DeleteHealthLocation(appID string, orgID string, id string) e
 		return err
 	}
 	if result == nil {
-		return fmt.Errorf("result is nil for resource item with id " + id)
+		return fmt.Errorf("result is nil for resource item with id %s", id)
 	}
 	deletedCount := result.DeletedCount
 	if deletedCount != 1 {
-		return fmt.Errorf("error occured while deleting a resource item with id " + id)
+		return fmt.Errorf("error occured while deleting a resource item with id %s", id)
 	}
 	return nil
 
@@ -433,11 +433,11 @@ func (sa *Adapter) DeleteContentItem(appID *string, orgID string, id string) err
 		return err
 	}
 	if result == nil {
-		return fmt.Errorf("result is nil for resource item with id " + id)
+		return fmt.Errorf("result is nil for resource item with id %s", id)
 	}
 	deletedCount := result.DeletedCount
 	if deletedCount != 1 {
-		return fmt.Errorf("error occured while deleting a resource item with id " + id)
+		return fmt.Errorf("error occured while deleting a resource item with id %s", id)
 	}
 	return nil
 }
@@ -549,11 +549,11 @@ func (sa *Adapter) DeleteDataContentItem(appID *string, orgID string, key string
 		return err
 	}
 	if result == nil {
-		return fmt.Errorf("result is nil for data content item with key " + key)
+		return fmt.Errorf("result is nil for data content item with key %s", key)
 	}
 	deletedCount := result.DeletedCount
 	if deletedCount != 1 {
-		return fmt.Errorf("error occured while deleting a data content item with key " + key)
+		return fmt.Errorf("error occured while deleting a data content item with key %s", key)
 	}
 	return nil
 }
@@ -615,11 +615,11 @@ func (sa *Adapter) DeleteCategory(appID *string, orgID string, name string) erro
 		return err
 	}
 	if result == nil {
-		return fmt.Errorf("result is nil for cateogry with id " + name)
+		return fmt.Errorf("result is nil for cateogry with id %s", name)
 	}
 	deletedCount := result.DeletedCount
 	if deletedCount != 1 {
-		return fmt.Errorf("error occured while deleting a category with id " + name)
+		return fmt.Errorf("error occured while deleting a category with id %s", name)
 	}
 	return nil
 }
